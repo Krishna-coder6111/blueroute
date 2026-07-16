@@ -6,12 +6,15 @@
 <title>Boston Bikeshare Atlas — insights from 24M Bluebikes trips</title>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
+  /* Data palette follows City of Boston brand: Optimistic Blue #288BE4,
+     Freedom Trail Red #FB4D42, Charles Blue depths for chrome.
+     Rule: blue = supply/positive, red = demand/attention, gray = muted. */
   :root {
-    --bg-deep: #080e17; --bg-panel: #0d1520cc; --bg-card: #111c2b;
-    --border: #1c2d42; --text: #e2e8f0; --text2: #8b9cb8; --muted: #4a5f7a;
-    --blue: #3b82f6; --bike: #38bdf8; --amber: #f59e0b; --red: #ef4444; --green: #4ade80;
+    --bg-deep: #081420; --bg-panel: #0b1b2bd9; --bg-card: #10263a;
+    --border: #1e3852; --text: #f2f6fa; --text2: #a9bccd; --muted: #5d7288;
+    --ob: #288BE4; --ob-light: #8ABEEE; --ftr: #FB4D42; --ftr-light: #FF9C94;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'DM Sans', sans-serif; background: var(--bg-deep); color: var(--text); height: 100vh; overflow: hidden; }
@@ -19,41 +22,42 @@
 
   .panel {
     position: absolute; top: 14px; left: 14px; bottom: 14px;
-    width: 360px; z-index: 10;
+    width: 372px; z-index: 10;
     background: var(--bg-panel); backdrop-filter: blur(12px);
-    border: 1px solid var(--border); border-radius: 14px;
+    border: 1px solid var(--border); border-radius: 12px;
     display: flex; flex-direction: column; overflow: hidden;
   }
   .panel-head { padding: 16px 16px 10px; }
   .panel-head h1 {
-    font-size: 18px; font-weight: 700;
-    background: linear-gradient(90deg, #60a5fa, #a78bfa);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    font-family: 'Montserrat', sans-serif; font-size: 17px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .04em; color: var(--ob);
   }
-  .panel-head .sub { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; letter-spacing: .06em; margin-top: 2px; }
+  .panel-head .sub { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; letter-spacing: .06em; margin-top: 3px; }
 
   .statrow { display: flex; gap: 6px; padding: 0 16px 10px; flex-wrap: wrap; }
-  .stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 5px 9px; }
-  .stat b { font-size: 13px; font-family: 'JetBrains Mono', monospace; color: var(--bike); display: block; }
+  .stat { background: var(--bg-card); border: 1px solid var(--border); border-top: 3px solid var(--ob); border-radius: 6px; padding: 5px 9px; }
+  .stat b { font-size: 13px; font-family: 'JetBrains Mono', monospace; color: var(--text); display: block; }
   .stat span { font-size: 8.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; font-family: 'JetBrains Mono', monospace; }
 
-  .views { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 16px 8px; }
+  .views { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 16px 6px; }
+  .vhint { padding: 0 16px 8px; font-size: 9.5px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
   .chip {
-    padding: 5px 10px; border-radius: 7px; border: 1px solid var(--border);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border);
     background: transparent; color: var(--muted); font-size: 11px; cursor: pointer;
     font-family: 'JetBrains Mono', monospace; transition: all .15s;
   }
-  .chip.active { background: #1a2d44; color: var(--text); border-color: var(--blue); }
+  .chip.active { background: #12314d; color: var(--text); border-color: var(--ob); }
   .chip:hover { border-color: var(--muted); }
-  .chip.lanes.active { color: var(--green); border-color: #22c55e66; background: #10241a; }
+  .chip.lanes.active { color: #4ade80; border-color: #22c55e66; background: #0d2a1c; }
 
   .story { flex: 1; overflow-y: auto; padding: 4px 16px 16px; }
   .story::-webkit-scrollbar { width: 5px; }
   .story::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  .story h2 { font-size: 13.5px; margin: 10px 0 6px; color: var(--text); }
+  .story h2 { font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 700; margin: 10px 0 6px; color: var(--text); }
   .story p { font-size: 12px; line-height: 1.65; color: var(--text2); margin-bottom: 8px; }
   .story p b { color: var(--text); }
-  .legend { margin: 8px 0; padding: 9px 11px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px; }
+  .legend { margin: 8px 0; padding: 9px 11px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; }
+  .legend .ltitle { font-size: 9px; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 5px; }
   .legend .row { display: flex; align-items: center; gap: 7px; font-size: 10.5px; color: var(--text2); padding: 2px 0; font-family: 'JetBrains Mono', monospace; }
   .legend .swatch { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
   .legend .line { width: 16px; height: 3px; border-radius: 2px; flex-shrink: 0; }
@@ -62,48 +66,50 @@
   .toplist .item {
     display: flex; align-items: center; gap: 8px;
     padding: 7px 9px; margin-bottom: 5px;
-    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 7px;
     cursor: pointer; font-size: 11px; color: var(--text2); transition: all .15s;
   }
-  .toplist .item:hover { border-color: var(--blue); color: var(--text); }
-  .toplist .rank { font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--amber); flex-shrink: 0; }
-  .toplist .val { margin-left: auto; font-family: 'JetBrains Mono', monospace; color: var(--bike); flex-shrink: 0; }
+  .toplist .item:hover { border-color: var(--ob); color: var(--text); }
+  .toplist .rank { font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--ftr); flex-shrink: 0; }
+  .toplist .val { margin-left: auto; font-family: 'JetBrains Mono', monospace; color: var(--ob-light); flex-shrink: 0; }
 
-  .stlink { color: #60a5fa; cursor: pointer; border-bottom: 1px dotted #60a5fa66; }
-  .stlink:hover { color: #93c5fd; }
+  .stlink { color: var(--ob-light); cursor: pointer; border-bottom: 1px dotted #8ABEEE66; }
+  .stlink:hover { color: #c4dcf2; }
 
   .yearchips { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
   .ychip {
-    padding: 3px 8px; border-radius: 6px; font-size: 10px;
+    padding: 3px 8px; border-radius: 5px; font-size: 10px;
     font-family: 'JetBrains Mono', monospace; cursor: pointer;
     border: 1px solid var(--border); color: var(--muted); background: transparent;
   }
   .ychip.on { color: var(--text); border-color: currentColor; }
+  .ychip.subtoggle.on { color: var(--ftr); background: #3a1512; }
 
-  .bars { margin: 8px 0; }
+  .bars { margin: 6px 0 2px; }
   .bars .brow { display: flex; align-items: center; gap: 6px; padding: 1.5px 0; }
   .bars .blab { width: 42px; font-size: 9.5px; font-family: 'JetBrains Mono', monospace; color: var(--text2); flex-shrink: 0; }
-  .bars .btrack { flex: 1; height: 9px; border-radius: 3px; background: #0a1220; overflow: hidden; }
+  .bars .btrack { flex: 1; height: 9px; border-radius: 3px; background: #081826; overflow: hidden; }
   .bars .bfill { height: 100%; border-radius: 3px; }
   .bars .bval { width: 30px; font-size: 9.5px; font-family: 'JetBrains Mono', monospace; color: var(--muted); text-align: right; flex-shrink: 0; }
 
   .foot { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; gap: 12px; flex-wrap: wrap; }
-  .foot a { font-size: 11px; color: var(--bike); text-decoration: none; font-family: 'JetBrains Mono', monospace; }
+  .foot a { font-size: 11px; color: var(--ob-light); text-decoration: none; font-family: 'JetBrains Mono', monospace; }
   .foot a:hover { text-decoration: underline; }
 
   .maplibregl-popup-content {
     background: var(--bg-card) !important; color: var(--text) !important;
-    border: 1px solid var(--border); border-radius: 10px !important;
+    border: 1px solid var(--border); border-radius: 8px !important;
     font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 10px 12px !important;
     box-shadow: 0 10px 40px rgba(0,0,0,.6) !important;
   }
   .maplibregl-popup-tip { border-top-color: var(--bg-card) !important; border-bottom-color: var(--bg-card) !important; }
   .pp b { font-size: 12.5px; }
-  .pp .m { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text2); margin-top: 3px; }
-  .pp .m i { color: var(--bike); font-style: normal; }
+  .pp .m { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text2); margin-top: 3px; line-height: 1.6; }
+  .pp .m i { color: var(--ob-light); font-style: normal; }
+  .pp .m .warn { color: var(--ftr-light); }
 
   @media (max-width: 720px) {
-    .panel { width: auto; right: 14px; bottom: auto; max-height: 52vh; }
+    .panel { width: auto; right: 14px; bottom: auto; max-height: 55vh; }
   }
 </style>
 </head>
@@ -117,16 +123,18 @@
   </div>
   <div class="statrow" id="statrow"></div>
   <div class="views" id="views">
-    <button class="chip active" data-view="arbitrage">🎯 Points arbitrage</button>
+    <button class="chip active" data-view="arbitrage">🎯 Arbitrage</button>
     <button class="chip" data-view="traffic">🚲 Traffic</button>
     <button class="chip" data-view="stationage">🆕 Station age</button>
     <button class="chip" data-view="freshness">✨ Bike age</button>
     <button class="chip" data-view="equity">🏘 Income</button>
     <button class="chip" data-view="netflow">⚖ Net flow</button>
+    <button class="chip" data-view="dockfit">🅿 Dock fit</button>
     <button class="chip" data-view="gaps">🚧 Lane gaps</button>
     <button class="chip" data-view="proposed">📍 Proposed</button>
     <button class="chip lanes" data-view="__lanes">🛣 Bike lanes</button>
   </div>
+  <div class="vhint">layers stack — toggle any combination</div>
   <div class="story" id="story"></div>
   <div class="foot">
     <a href="../">🚲 Route planner</a>
@@ -136,135 +144,165 @@
 </div>
 
 <script>
+// ═══════════════════════════════════════════════════════════════════════════
+// Palette (City of Boston brand): blue = supply/positive, red = attention,
+// gray = muted. One diverging pair everywhere for legibility.
+// ═══════════════════════════════════════════════════════════════════════════
+const OB = '#288BE4', OB_L = '#8ABEEE', OB_D = '#1D6DB8';
+const FR = '#FB4D42', FR_L = '#FF9C94', FR_D = '#C33325';
+const GRAY = '#5d7288', GRAY_D = '#39485a';
+
+const AGE_BINS = [
+  { label: 'Core (≤2019)', color: GRAY, test: y => y > 0 && y <= 2019 },
+  { label: 'Expansion (2020–23)', color: OB, test: y => y >= 2020 && y <= 2023 },
+  { label: 'New (2024–26)', color: FR, test: y => y >= 2024 },
+  { label: 'unknown', color: GRAY_D, test: y => y === 0 },
+];
+
 const VIEWS = {
   arbitrage: {
     title: 'Points arbitrage — gaming the rewards program',
-    html: `<p>Bluebikes' rewards program pays points for moving bikes from full to
-      empty docks. Trip metadata reveals <b>76 station pairs</b> being farmed
-      systematically: short hops (≈2 min), back-and-forth, <b>~98% by members</b>,
-      repeated across years.</p>
-      <p>The busiest pair logged <b>11,002 flips</b> averaging 2.3 minutes over 0.4 km.
-      One pair averages <b>55 seconds and 100 meters</b>. Arc width = flip volume.
-      Click an arc for details; click a row to fly there.</p>`,
-    legend: [
-      ['line', '#fbbf24', 'few flips'],
-      ['line', '#ef4444', 'thousands of flips'],
-    ],
+    html: `<p>Trip metadata reveals <b>76 station pairs</b> being farmed for reward
+      points: short hops (≈2 min), back-and-forth, <b>~98% by members</b>, repeated
+      for years. The busiest pair logged <b>11,002 flips</b>; one averages
+      <b>55 seconds and 100 meters</b>. Arc width & depth of red = flip volume.</p>`,
+    legend: [['line', FR_L, 'hundreds of flips'], ['line', FR, 'thousands of flips']],
   },
   traffic: {
     title: 'A decade of trips, station by station',
     html: `<p>Dot size = total departures since 2018. The <b>Kendall/MIT corridor</b>
-      dominates — MIT at Mass Ave is the single busiest station. Ruggles T
-      (168K departures) anchors the Northeastern campus cluster.</p>
-      <p>Trips average <b>1.97 km</b>; true door-to-door speed over real streets is
-      <b>≈11 km/h</b> on classics and <b>≈15 km/h</b> on e-bikes (34% faster).</p>`,
-    legend: [['swatch', '#38bdf8', 'dot size = total trips']],
+      dominates; <span class="stlink" data-st="mit at mass ave">MIT at Mass Ave</span>
+      is the single busiest station and
+      <span class="stlink" data-st="ruggles t stop">Ruggles T</span> anchors the NEU
+      cluster. True door-to-door speeds: <b>≈11 km/h</b> classic, <b>≈15 km/h</b> e-bike.</p>`,
+    legend: [['swatch', OB, 'dot size = total trips']],
   },
   stationage: {
     title: 'The system is still growing — fast',
-    html: `<p>Each station colored by the year of its <b>first-ever trip</b> — a
-      reliable proxy for when it was installed. The newest:
+    html: `<p>Each station colored by the year of its <b>first-ever trip</b> (a proxy
+      for installation). <b>91 stations arrived in 2025</b> and 18 more already in
+      2026 — newest:
       <span class="stlink" data-st="andrew t stop - dorchester ave (east)">Andrew T Stop (Dorchester Ave)</span>,
-      first trips <b>June 9, 2026</b>, after a spring wave including
+      June 9, 2026, after
       <span class="stlink" data-st="broad canal way north">Broad Canal Way North</span> and
       <span class="stlink" data-st="125 cambridgepark dr">125 Cambridgepark Dr</span>.</p>
-      <p>Filter years below. Notes: trip records start Jul 2018, so "≤2018"
-      includes the original 2011-era core; 2021 is slightly undercounted
-      (raw-data gap being backfilled); gray = no trips yet matched (very new
-      or renamed).</p>`,
-    legend: [],   // year chips + chart rendered instead
+      <p>Filter years below. "≤2018" includes the original 2011-era core (trip
+      records begin Jul 2018); 2021 is slightly undercounted (data gap being
+      backfilled).</p>`,
+    legend: [],
   },
   freshness: {
     title: 'Where the newest bikes live (legacy fleet)',
-    html: `<p>Average "birth year" of the <b>bikes</b> docked at each station —
-      not the station's own age (see 🆕 for that). Computable only for the
-      pre-2024 fleet: bike IDs disappeared from published data in the schema
-      change, freezing this signal in time.</p>
+    html: `<p>Average "birth year" of the <b>bikes</b> docked at each station — not
+      the station's age (see 🆕). Computable only pre-2024: bike IDs left the
+      published data in the schema change.</p>
       <p><span class="stlink" data-st="salem willows park">Salem</span> (added 2021)
-      rides the newest fleet — avg birth 2020.5. Legacy downtown stations like
+      rides the newest fleet (avg 2020.5); legacy downtown stations like
       <span class="stlink" data-st="beacon st at arlington st">Beacon St at Arlington St</span>
-      average exactly <b>2018.0</b> with 0% new bikes.</p>`,
+      sit at exactly <b>2018.0</b>.</p>`,
     legend: [
-      ['swatch', '#ef4444', 'avg birth 2018 (oldest)'],
-      ['swatch', '#f59e0b', '2019'],
-      ['swatch', '#facc15', '2020'],
-      ['swatch', '#4ade80', '2020.5+ (newest)'],
-      ['swatch', '#334155', 'no bike-id data'],
+      ['swatch', FR, 'oldest bikes (2018)'],
+      ['swatch', FR_L, '2019'],
+      ['swatch', OB_L, '2020'],
+      ['swatch', OB, 'newest (2020.5+)'],
+      ['swatch', GRAY_D, 'no bike-id data'],
     ],
   },
   equity: {
     title: 'Stations & neighborhood income',
-    html: `<p>Contrary to the usual equity concern, stations concentrate in
-      <b>lower-income, more diverse tracts</b>: 49% of Very-Low-income tracts have
-      stations vs 23% of High-income tracts.</p>
-      <p>E-bike usage is <b>higher in poorer neighborhoods</b> (r = −0.17), and e-bikes
-      physically flow toward them — they function as a <b>commuting equalizer</b>,
-      carrying riders from affordable neighborhoods to wealthy job centers.</p>`,
+    html: `<p>Stations concentrate in <b>lower-income, more diverse tracts</b>: 49%
+      of Very-Low-income tracts have stations vs 23% of High-income tracts.
+      E-bike usage runs <b>higher in poorer neighborhoods</b> (r = −0.17) and e-bikes
+      flow toward them — a <b>commuting equalizer</b> toward wealthy job centers.</p>`,
     legend: [
-      ['swatch', '#ef4444', 'Very Low (<$55k)'],
-      ['swatch', '#f59e0b', 'Low ($55–75k)'],
-      ['swatch', '#9ca3af', 'Middle ($75–100k)'],
-      ['swatch', '#60a5fa', 'Upper-Mid ($100–130k)'],
-      ['swatch', '#2563eb', 'High (>$130k)'],
-    ],
-  },
-  gaps: {
-    title: 'Where riders go that lanes don’t',
-    html: `<p>The top 300 station-to-station flows (395K trips in 2025), routed
-      over real streets and overlaid on the <b>Boston (2024) + Cambridge bike
-      networks</b>. Red cells carry heavy Bluebikes traffic on Boston streets
-      with <b>no bike lane within 30 m</b> — <b>38.8%</b> of routed Boston
-      volume rides unprotected.</p>
-      <p>Top gap corridors: <b>Roxbury/Melnea Cass</b>, <b>Nubian Square</b>,
-      <b>Columbus Ave / Back Bay</b>, the <b>South End</b>, and <b>Allston</b>.
-      Only City-of-Boston streets are ranked (other cities' inventories are
-      separate); the OSRM router already prefers lanes, so gap volume is a
-      <b>lower bound</b> on demand. Toggle 🛣 for the lane network.</p>`,
-    legend: [
-      ['swatch', '#38bdf866', 'routed volume, on/near a lane'],
-      ['swatch', '#f59e0b', 'gap — moderate volume, no lane'],
-      ['swatch', '#ef4444', 'gap — heavy volume, no lane'],
-      ['swatch', '#64748b', 'outside Boston (not ranked)'],
-    ],
-  },
-  proposed: {
-    title: 'Where the next 25 stations should go',
-    html: `<p>Maximal-covering optimization (Church & ReVelle 1974): pick 25
-      sites that maximize <b>newly served population</b> within a 500 m walk,
-      holding the existing 600+ stations fixed and staying within 2 km of the
-      current network.</p>
-      <p>Solved to optimality: these sites would cover <b>~107,000 currently
-      unserved people (+10%)</b> — concentrated in Everett/Malden, East Boston
-      → Revere, Hyde Park, and West Roxbury. Dock counts come from the
-      log-linear baseline fitted on the existing network. Click a marker for
-      details.</p>`,
-    legend: [
-      ['swatch', '#4ade80', 'proposed station (size = population served)'],
+      ['swatch', FR, 'Very Low (<$55k)'],
+      ['swatch', FR_L, 'Low ($55–75k)'],
+      ['swatch', GRAY, 'Middle ($75–100k)'],
+      ['swatch', OB_L, 'Upper-Mid ($100–130k)'],
+      ['swatch', OB, 'High (>$130k)'],
     ],
   },
   netflow: {
     title: 'Where bikes pile up — and vanish',
     html: `<p>Net flow = arrivals − departures over the full record. Commuters ride
-      <b>into</b> Kendall each morning and take the T home:
+      <b>into</b> Kendall and take the T home:
       <span class="stlink" data-st="ames st at main st">Ames St at Main St</span>
-      accumulated a +20,451 bike surplus while
-      <span class="stlink" data-st="mit stata center">MIT Stata</span> ran a −9,217 deficit —
-      240 meters apart.</p>
-      <p>That imbalance is what the rewards program (and its gamers) feed on, and
-      what rebalancing crews chase daily. ~58 bikes/month also degrade into a
-      faulty state (≈$70K/yr repair burden).</p>`,
+      accumulated <b>+20,451</b> bikes while
+      <span class="stlink" data-st="mit stata center">MIT Stata</span> ran <b>−9,217</b> —
+      240 m apart. This imbalance feeds both the rebalancing crews and the
+      points farmers (🎯).</p>`,
     legend: [
-      ['swatch', '#fbbf24', 'chronic surplus (bikes pile up)'],
-      ['swatch', '#475569', 'balanced'],
-      ['swatch', '#ef4444', 'chronic deficit (always empty)'],
+      ['swatch', OB, 'chronic surplus (bikes pile up)'],
+      ['swatch', GRAY_D, 'balanced'],
+      ['swatch', FR, 'chronic deficit (always empty)'],
     ],
+  },
+  dockfit: {
+    title: 'Right-sizing existing stations',
+    html: `<p>Capacity vs 2025 demand, judged by the network-wide dock-sizing fit
+      (docks ≈ 4.1 + 1.5·ln events). <b>Red = under-docked</b>:
+      <span class="stlink" data-st="cambridge st at joy st">Cambridge St at Joy St</span>
+      handles <b>140 events/day on 14 docks</b>;
+      <span class="stlink" data-st="forsyth st at huntington ave">Forsyth St</span>
+      178/day on 15. <b>Light blue = over-docked</b>: 50 stations, some near-dead
+      (<span class="stlink" data-st="ashley st at boardman st">Ashley St at Boardman St</span>:
+      20 docks, ~0 events/day).</p>
+      <p>Dot size = |suggested change|. Click a dot for the numbers.</p>`,
+    legend: [
+      ['swatch', FR, 'add docks (≥ +4, ≥30 events/day)'],
+      ['swatch', OB_L, 'remove docks (≤ −4, quiet)'],
+      ['swatch', GRAY_D, 'sized about right'],
+    ],
+  },
+  gaps: {
+    title: 'The lanes that need to exist',
+    html: `<p><b>Red lines</b> trace heavily-ridden street stretches (top-300 flows,
+      395K trips) that are <b>more than 130 m from any bike lane</b> — far enough
+      that no parallel facility serves them. Riding on a lane-less street that's
+      one short block from the Southwest Corridor doesn't count: those
+      "parallel" stretches are muted (that's most of them).</p>
+      <p>The honest two-part number: <b>38.8%</b> of routed Boston volume rides on
+      streets without their own lane, but only <b>5.3%</b> is truly far from one.
+      Where that 5.3% concentrates: <b>Roxbury core, South Boston/Broadway,
+      City Point, Mission Hill, East Boston</b>. Faint blue dots = routed volume
+      that IS lane-served, for context.</p>`,
+    legend: [
+      ['line', FR, 'needed lane (width = riders routed)'],
+      ['swatch', '#28648E', 'volume on/near existing lanes'],
+    ],
+  },
+  proposed: {
+    title: 'Where the next 25 stations should go',
+    html: `<p>Maximal-covering optimization (Church & ReVelle 1974): 25 sites that
+      maximize <b>newly served population</b> within a 500 m walk, existing network
+      fixed. Solved to optimality: <b>~107,000 more people (+10%)</b> — Everett/
+      Malden, East Boston → Revere, Hyde Park, West Roxbury. Ring size =
+      population served; click for suggested docks. Try stacking 🚲 Traffic to
+      see how they sit beyond today's demand.</p>`,
+    legend: [['swatch', '#ffffff', 'proposed station (ring, size = pop served)']],
   },
 };
 
-let map, DATA = {}, currentView = 'arbitrage', lanesOn = false;
+// ─── State ───────────────────────────────────────────────────────────────────
+let map, DATA = {};
+const activeViews = new Set(['arbitrage']);
+let primaryView = 'arbitrage';
+let lanesOn = false, heavyOnly = false;
+let activeYears = null;
 const LANE_LAYER_IDS = [];
-let activeYears = null;   // Set of first-trip years shown in station-age view
+const VIEW_LAYERS = {
+  arbitrage: ['arbitrage-glow', 'arbitrage'],
+  traffic: ['st-traffic'],
+  stationage: ['st-stationage'],
+  freshness: ['st-freshness'],
+  equity: ['st-equity'],
+  netflow: ['st-netflow'],
+  dockfit: ['dockfit'],
+  gaps: ['gaps-ctx', 'gaps-lines'],
+  proposed: ['proposed'],
+};
 
+// ─── Utils ───────────────────────────────────────────────────────────────────
 function arcPoints(a, b, n = 24, bend = 0.18) {
   const pts = [];
   const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
@@ -279,7 +317,10 @@ function arcPoints(a, b, n = 24, bend = 0.18) {
   }
   return pts;
 }
+const fyOf = s => s.first ? Math.max(2018, +s.first.slice(0, 4)) : 0;
+const binOf = y => AGE_BINS.find(b => b.test(y)) || AGE_BINS[3];
 
+// ─── Data ────────────────────────────────────────────────────────────────────
 async function loadData() {
   const [stations, arbitrage] = await Promise.all([
     fetch('data/stations.json').then(r => r.json()),
@@ -287,13 +328,14 @@ async function loadData() {
   ]);
   DATA.stations = stations;
   DATA.arbitrage = arbitrage;
-  try {
-    let r = await fetch('data/lanes_all.geojson');           // Boston + Cambridge
-    if (!r.ok) r = await fetch('data/lanes.geojson');        // Boston only
-    DATA.lanes = await r.json();
-  } catch (e) {}
-  try { DATA.gaps = await fetch('data/lane_gaps.geojson').then(r => r.ok ? r.json() : null); } catch (e) {}
-  try { DATA.proposed = await fetch('data/proposed.json').then(r => r.ok ? r.json() : null); } catch (e) {}
+  const opt = async (name) => {
+    try { const r = await fetch(`data/${name}`); return r.ok ? await r.json() : null; }
+    catch (e) { return null; }
+  };
+  DATA.lanes = await opt('lanes_all.geojson') || await opt('lanes.geojson');
+  DATA.gaps = await opt('lane_gaps.geojson');
+  DATA.proposed = await opt('proposed.json');
+  DATA.dockfit = await opt('dock_resize.json');
 }
 
 function stationGeojson() {
@@ -305,8 +347,7 @@ function stationGeojson() {
       properties: {
         n: s.n, cap: s.cap || 0, trips: s.trips || 0, birth: s.birth || 0,
         inc: s.inc || 0, tier: s.tier || '', ebike: s.ebike ?? -1,
-        net: s.net ?? 0, first: s.first || '',
-        fy: s.first ? Math.max(2018, +s.first.slice(0, 4)) : 0,
+        net: s.net ?? 0, first: s.first || '', fy: fyOf(s),
       },
     })),
   };
@@ -323,24 +364,41 @@ function arbitrageGeojson() {
   };
 }
 
+// ─── Layers ──────────────────────────────────────────────────────────────────
+function popupRow(p) {
+  return [
+    p.trips ? `<i>${(+p.trips).toLocaleString()}</i> trips` : '',
+    p.first ? `first trip <i>${p.first}</i>` : '',
+    p.birth > 0 ? `avg bike birth <i>${(+p.birth).toFixed(1)}</i>` : '',
+    p.net ? `net flow <i>${(+p.net).toLocaleString()}</i>` : '',
+    p.tier || '',
+    p.ebike >= 0 ? `<i>${p.ebike}%</i> e-bike` : '',
+    `capacity <i>${p.cap}</i>`,
+  ].filter(Boolean).join(' · ');
+}
+
+function bindPointer(id) {
+  map.on('mouseenter', id, () => map.getCanvas().style.cursor = 'pointer');
+  map.on('mouseleave', id, () => map.getCanvas().style.cursor = '');
+}
+
 function initLayers() {
   map.addSource('stations', { type: 'geojson', data: stationGeojson() });
   map.addSource('arbitrage', { type: 'geojson', data: arbitrageGeojson() });
-  if (DATA.lanes) map.addSource('lanes', { type: 'geojson', data: DATA.lanes });
 
+  // lanes (bottom)
   if (DATA.lanes) {
-    // one layer per facility class so dash patterns can differ
+    map.addSource('lanes', { type: 'geojson', data: DATA.lanes });
     const laneStyles = {
       separated: { color: '#22c55e', width: 2.4, opacity: 0.85 },
       buffered:  { color: '#2dd4bf', width: 1.9, opacity: 0.8 },
-      lane:      { color: '#86efac', width: 1.3, opacity: 0.65 },
-      path:      { color: '#38bdf8', width: 1.7, opacity: 0.75, dash: [2.2, 1.8] },
-      shared:    { color: '#a3a3a3', width: 1.1, opacity: 0.5, dash: [0.4, 1.8] },
+      lane:      { color: '#86efac', width: 1.3, opacity: 0.6 },
+      path:      { color: '#57cfc0', width: 1.7, opacity: 0.7, dash: [2.2, 1.8] },
+      shared:    { color: '#9aa79b', width: 1.1, opacity: 0.45, dash: [0.4, 1.8] },
     };
     const LANE_LABELS = { separated: 'Separated / protected lane', buffered: 'Buffered lane',
                           lane: 'Conventional bike lane', path: 'Shared-use path',
                           shared: 'Sharrows / shared lane' };
-    LANE_LAYER_IDS.length = 0;
     for (const [t, s] of Object.entries(laneStyles)) {
       const id = `lanes-${t}`;
       LANE_LAYER_IDS.push(id);
@@ -348,38 +406,157 @@ function initLayers() {
         id, type: 'line', source: 'lanes',
         filter: ['==', ['get', 't'], t],
         layout: { visibility: 'none' },
-        paint: {
-          'line-color': s.color, 'line-width': s.width, 'line-opacity': s.opacity,
-          ...(s.dash ? { 'line-dasharray': s.dash } : {}),
-        },
+        paint: { 'line-color': s.color, 'line-width': s.width, 'line-opacity': s.opacity,
+                 ...(s.dash ? { 'line-dasharray': s.dash } : {}) },
       });
       map.on('click', id, e => {
         const p = e.features[0].properties;
         new maplibregl.Popup().setLngLat(e.lngLat)
-          .setHTML(`<div class="pp"><b>${LANE_LABELS[p.t] || p.t}</b>
-            <div class="m">${p.c ? p.c[0].toUpperCase() + p.c.slice(1) : ''} inventory</div></div>`)
-          .addTo(map);
+          .setHTML(`<div class="pp"><b>${LANE_LABELS[p.t]}</b>
+            <div class="m">${p.c ? p.c[0].toUpperCase() + p.c.slice(1) : ''} inventory</div></div>`).addTo(map);
       });
+      bindPointer(id);
     }
   }
 
+  // lane gaps: context dots + needed-lane lines
   if (DATA.gaps) {
     map.addSource('gaps', { type: 'geojson', data: DATA.gaps });
     map.addLayer({
-      id: 'gaps', type: 'circle', source: 'gaps',
+      id: 'gaps-ctx', type: 'circle', source: 'gaps',
+      filter: ['==', ['get', 'gap'], 0],
       layout: { visibility: 'none' },
+      paint: { 'circle-radius': 1.8, 'circle-color': '#28648E', 'circle-opacity': 0.35 },
+    });
+    map.addLayer({
+      id: 'gaps-lines', type: 'line', source: 'gaps',
+      filter: ['==', ['get', 'gap'], 1],
+      layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['get', 'v'], 200, 1.6, 3000, 3.2, 15000, 6],
-        'circle-color': ['case',
-          ['==', ['get', 'gap'], 0], '#38bdf8',
-          ['==', ['get', 'gap'], 2], '#64748b',
-          ['interpolate', ['linear'], ['get', 'v'], 200, '#f59e0b', 8000, '#ef4444']],
-        'circle-opacity': ['case',
-          ['==', ['get', 'gap'], 0], 0.25,
-          ['==', ['get', 'gap'], 2], 0.2, 0.85],
+        'line-color': ['interpolate', ['linear'], ['get', 'v'], 300, FR_L, 3000, FR, 8000, FR_D],
+        'line-width': ['interpolate', ['linear'], ['get', 'v'], 300, 2, 3000, 4.5, 8000, 7],
+        'line-opacity': 0.9,
       },
     });
+    map.on('click', 'gaps-lines', e => {
+      const p = e.features[0].properties;
+      new maplibregl.Popup().setLngLat(e.lngLat)
+        .setHTML(`<div class="pp"><b>Needed lane</b>
+          <div class="m"><i>${(+p.v).toLocaleString()}</i> trips/yr routed along this
+          unprotected stretch · >130 m from any existing lane</div></div>`).addTo(map);
+    });
+    bindPointer('gaps-lines');
   }
+
+  // arbitrage arcs
+  map.addLayer({
+    id: 'arbitrage-glow', type: 'line', source: 'arbitrage',
+    paint: {
+      'line-color': FR, 'line-opacity': 0.14, 'line-blur': 6,
+      'line-width': ['interpolate', ['linear'], ['get', 'trips'], 100, 4, 11000, 16],
+    },
+  });
+  map.addLayer({
+    id: 'arbitrage', type: 'line', source: 'arbitrage',
+    paint: {
+      'line-color': ['interpolate', ['linear'], ['get', 'trips'], 100, FR_L, 2500, FR, 11000, FR_D],
+      'line-opacity': 0.85,
+      'line-width': ['interpolate', ['linear'], ['get', 'trips'], 100, 1, 2000, 2.5, 11000, 5],
+    },
+  });
+  map.on('click', 'arbitrage', e => {
+    const p = e.features[0].properties;
+    new maplibregl.Popup().setLngLat(e.lngLat)
+      .setHTML(`<div class="pp"><b>${p.aN} ⇄ ${p.bN}</b>
+        <div class="m"><i>${(+p.trips).toLocaleString()}</i> flips · avg <i>${p.mins}</i> min ·
+        <i>${p.km}</i> km · <i>${p.member}%</i> members · active <i>${p.days}</i> days</div></div>`).addTo(map);
+  });
+  bindPointer('arbitrage');
+
+  // station views
+  const stationPaints = {
+    traffic: {
+      'circle-radius': ['interpolate', ['linear'], ['sqrt', ['+', ['get', 'trips'], 1]], 0, 1.5, 200, 4, 420, 13],
+      'circle-color': OB, 'circle-opacity': 0.7,
+    },
+    stationage: {
+      'circle-radius': 4.5,
+      'circle-color': ['case',
+        ['==', ['get', 'fy'], 0], GRAY_D,
+        ['<=', ['get', 'fy'], 2019], GRAY,
+        ['<=', ['get', 'fy'], 2023], OB, FR],
+      'circle-opacity': 0.9,
+    },
+    freshness: {
+      'circle-radius': 4.5,
+      'circle-color': ['case', ['<=', ['get', 'birth'], 0], GRAY_D,
+        ['interpolate', ['linear'], ['get', 'birth'], 2018, FR, 2019, FR_L, 2019.8, OB_L, 2020.5, OB]],
+      'circle-opacity': 0.85,
+    },
+    equity: {
+      'circle-radius': 4.5,
+      'circle-color': ['match', ['get', 'tier'],
+        'Very Low (<$55k)', FR, 'Low ($55-75k)', FR_L,
+        'Middle ($75-100k)', GRAY, 'Upper-Mid ($100-130k)', OB_L,
+        'High (>$130k)', OB, GRAY_D],
+      'circle-opacity': 0.85,
+    },
+    netflow: {
+      'circle-radius': ['interpolate', ['linear'], ['sqrt', ['+', ['abs', ['get', 'net']], 1]], 0, 2, 60, 5, 145, 13],
+      'circle-color': ['interpolate', ['linear'], ['get', 'net'], -9000, FR, -400, FR_L, 0, GRAY_D, 800, OB_L, 20000, OB],
+      'circle-opacity': 0.8,
+    },
+  };
+  for (const [v, paint] of Object.entries(stationPaints)) {
+    map.addLayer({
+      id: `st-${v}`, type: 'circle', source: 'stations',
+      layout: { visibility: 'none' },
+      paint: { ...paint, 'circle-stroke-color': '#0b1b2b', 'circle-stroke-width': 0.8 },
+    });
+    map.on('click', `st-${v}`, e => {
+      const p = e.features[0].properties;
+      new maplibregl.Popup().setLngLat(e.lngLat)
+        .setHTML(`<div class="pp"><b>${p.n}</b><div class="m">${popupRow(p)}</div></div>`).addTo(map);
+    });
+    bindPointer(`st-${v}`);
+  }
+
+  // dock fit
+  if (DATA.dockfit) {
+    map.addSource('dockfit', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: DATA.dockfit.map(d => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [d.lng, d.lat] },
+          properties: d,
+        })),
+      },
+    });
+    map.addLayer({
+      id: 'dockfit', type: 'circle', source: 'dockfit',
+      layout: { visibility: 'none' },
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['abs', ['get', 'd']], 0, 2.5, 6, 6, 12, 10],
+        'circle-color': ['match', ['get', 'a'], 'expand', FR, 'shrink', OB_L, GRAY_D],
+        'circle-opacity': ['match', ['get', 'a'], 'ok', 0.35, 0.9],
+        'circle-stroke-color': '#0b1b2b', 'circle-stroke-width': 0.8,
+      },
+    });
+    map.on('click', 'dockfit', e => {
+      const p = e.features[0].properties;
+      const verdict = p.a === 'expand' ? `<span class="warn">add ~${p.d} docks</span>`
+        : p.a === 'shrink' ? `free up ~${-p.d} docks` : 'sized about right';
+      new maplibregl.Popup().setLngLat(e.lngLat)
+        .setHTML(`<div class="pp"><b>${p.n}</b>
+          <div class="m"><i>${p.cap}</i> docks · <i>${p.epd}</i> events/day (2025) ·
+          model fit <i>${p.fit}</i> docks → ${verdict}</div></div>`).addTo(map);
+    });
+    bindPointer('dockfit');
+  }
+
+  // proposed (top)
   if (DATA.proposed) {
     map.addSource('proposed', {
       type: 'geojson',
@@ -397,8 +574,8 @@ function initLayers() {
       layout: { visibility: 'none' },
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['get', 'pop'], 500, 5, 5700, 11],
-        'circle-color': '#4ade8033',
-        'circle-stroke-color': '#4ade80', 'circle-stroke-width': 2,
+        'circle-color': 'rgba(40,139,228,0.25)',
+        'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2,
       },
     });
     map.on('click', 'proposed', e => {
@@ -408,161 +585,108 @@ function initLayers() {
           <div class="m"><i>${(+p.pop).toLocaleString()}</i> people within 500 m ·
           suggested <i>${p.docks}</i> docks</div></div>`).addTo(map);
     });
-    map.on('mouseenter', 'proposed', () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', 'proposed', () => map.getCanvas().style.cursor = '');
+    bindPointer('proposed');
   }
-
-  map.addLayer({
-    id: 'arbitrage-glow', type: 'line', source: 'arbitrage',
-    paint: {
-      'line-color': '#f59e0b', 'line-opacity': 0.15,
-      'line-width': ['interpolate', ['linear'], ['get', 'trips'], 100, 4, 11000, 16],
-      'line-blur': 6,
-    },
-  });
-  map.addLayer({
-    id: 'arbitrage', type: 'line', source: 'arbitrage',
-    paint: {
-      'line-color': ['interpolate', ['linear'], ['get', 'trips'], 100, '#fbbf24', 2000, '#f97316', 11000, '#ef4444'],
-      'line-opacity': 0.85,
-      'line-width': ['interpolate', ['linear'], ['get', 'trips'], 100, 1, 2000, 2.5, 11000, 5],
-    },
-  });
-
-  const views = {
-    stationage: {
-      'circle-radius': 4.5,
-      'circle-color': ['case', ['==', ['get', 'fy'], 0], '#334155',
-        ['interpolate', ['linear'], ['get', 'fy'],
-          2018, '#64748b', 2019, '#60a5fa', 2020, '#38bdf8', 2021, '#2dd4bf',
-          2022, '#4ade80', 2023, '#facc15', 2024, '#f59e0b', 2025, '#f97316', 2026, '#ef4444']],
-      'circle-opacity': 0.9,
-    },
-    traffic: {
-      'circle-radius': ['interpolate', ['linear'], ['sqrt', ['+', ['get', 'trips'], 1]], 0, 1.5, 200, 4, 420, 13],
-      'circle-color': '#38bdf8', 'circle-opacity': 0.75,
-    },
-    freshness: {
-      'circle-radius': 4.5,
-      'circle-color': ['case', ['<=', ['get', 'birth'], 0], '#334155',
-        ['interpolate', ['linear'], ['get', 'birth'], 2018, '#ef4444', 2019, '#f59e0b', 2020, '#facc15', 2020.5, '#4ade80']],
-      'circle-opacity': 0.85,
-    },
-    equity: {
-      'circle-radius': 4.5,
-      'circle-color': ['match', ['get', 'tier'],
-        'Very Low (<$55k)', '#ef4444', 'Low ($55-75k)', '#f59e0b',
-        'Middle ($75-100k)', '#9ca3af', 'Upper-Mid ($100-130k)', '#60a5fa',
-        'High (>$130k)', '#2563eb', '#334155'],
-      'circle-opacity': 0.85,
-    },
-    netflow: {
-      'circle-radius': ['interpolate', ['linear'], ['sqrt', ['+', ['abs', ['get', 'net']], 1]], 0, 2, 60, 5, 145, 13],
-      'circle-color': ['interpolate', ['linear'], ['get', 'net'], -9000, '#ef4444', 0, '#475569', 20000, '#fbbf24'],
-      'circle-opacity': 0.8,
-    },
-  };
-  for (const [id, paint] of Object.entries(views)) {
-    map.addLayer({
-      id: `st-${id}`, type: 'circle', source: 'stations',
-      layout: { visibility: 'none' },
-      paint: { ...paint, 'circle-stroke-color': '#0d1520', 'circle-stroke-width': 0.8 },
-    });
-    map.on('click', `st-${id}`, e => {
-      const p = e.features[0].properties;
-      const rows = [
-        p.trips ? `<i>${(+p.trips).toLocaleString()}</i> trips` : '',
-        p.birth > 0 ? `avg bike birth <i>${(+p.birth).toFixed(1)}</i>` : '',
-        p.net ? `net flow <i>${(+p.net).toLocaleString()}</i>` : '',
-        p.tier ? `${p.tier}` : '',
-        p.ebike >= 0 ? `<i>${p.ebike}%</i> e-bike` : '',
-        p.first ? `first trip <i>${p.first}</i>` : '',
-        `capacity <i>${p.cap}</i>`,
-      ].filter(Boolean).join(' · ');
-      new maplibregl.Popup().setLngLat(e.lngLat)
-        .setHTML(`<div class="pp"><b>${p.n}</b><div class="m">${rows}</div></div>`).addTo(map);
-    });
-    map.on('mouseenter', `st-${id}`, () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', `st-${id}`, () => map.getCanvas().style.cursor = '');
-  }
-
-  map.on('click', 'arbitrage', e => {
-    const p = e.features[0].properties;
-    new maplibregl.Popup().setLngLat(e.lngLat)
-      .setHTML(`<div class="pp"><b>${p.aN} ⇄ ${p.bN}</b>
-        <div class="m"><i>${(+p.trips).toLocaleString()}</i> flips · avg <i>${p.mins}</i> min ·
-        <i>${p.km}</i> km · <i>${p.member}%</i> members · active <i>${p.days}</i> days</div></div>`)
-      .addTo(map);
-  });
-  map.on('mouseenter', 'arbitrage', () => map.getCanvas().style.cursor = 'pointer');
-  map.on('mouseleave', 'arbitrage', () => map.getCanvas().style.cursor = '');
 }
 
-function setView(view) {
-  if ((view === 'gaps' && !DATA.gaps) || (view === 'proposed' && !DATA.proposed)) return;
-  currentView = view;
-  ['arbitrage-glow', 'arbitrage'].forEach(id =>
-    map.setLayoutProperty(id, 'visibility', view === 'arbitrage' ? 'visible' : 'none'));
-  ['stationage', 'traffic', 'freshness', 'equity', 'netflow'].forEach(v =>
-    map.setLayoutProperty(`st-${v}`, 'visibility', v === view ? 'visible' : 'none'));
-  if (DATA.gaps) map.setLayoutProperty('gaps', 'visibility', view === 'gaps' ? 'visible' : 'none');
-  if (DATA.proposed) map.setLayoutProperty('proposed', 'visibility', view === 'proposed' ? 'visible' : 'none');
-  if (view === 'gaps' && !lanesOn) document.querySelector('.chip.lanes')?.click();
+// ─── View toggling (multi-layer) ────────────────────────────────────────────
+function hasView(v) {
+  return !((v === 'gaps' && !DATA.gaps) || (v === 'proposed' && !DATA.proposed) ||
+           (v === 'dockfit' && !DATA.dockfit));
+}
+
+function syncLayers() {
+  for (const [v, ids] of Object.entries(VIEW_LAYERS)) {
+    ids.forEach(id => {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', activeViews.has(v) ? 'visible' : 'none');
+    });
+  }
+  LANE_LAYER_IDS.forEach(id => map.setLayoutProperty(id, 'visibility', lanesOn ? 'visible' : 'none'));
   document.querySelectorAll('.chip:not(.lanes)').forEach(c =>
-    c.classList.toggle('active', c.dataset.view === view));
+    c.classList.toggle('active', activeViews.has(c.dataset.view)));
+  document.querySelector('.chip.lanes').classList.toggle('active', lanesOn);
+}
+
+function toggleView(v) {
+  if (!hasView(v)) return;
+  if (activeViews.has(v)) {
+    activeViews.delete(v);
+    if (primaryView === v) primaryView = [...activeViews][0] || null;
+  } else {
+    activeViews.add(v);
+    primaryView = v;
+    if (v === 'gaps' && !lanesOn) lanesOn = true;   // gaps need lane context
+  }
+  syncLayers();
   renderStory();
 }
 
-const YEAR_COLORS = { 2018: '#64748b', 2019: '#60a5fa', 2020: '#38bdf8', 2021: '#2dd4bf',
-                      2022: '#4ade80', 2023: '#facc15', 2024: '#f59e0b', 2025: '#f97316', 2026: '#ef4444' };
-
+// ─── Filters ─────────────────────────────────────────────────────────────────
 function applyYearFilter() {
   if (!map.getLayer('st-stationage')) return;
   if (!activeYears) { map.setFilter('st-stationage', null); return; }
   map.setFilter('st-stationage', ['in', ['get', 'fy'], ['literal', [...activeYears]]]);
 }
+function applyHeavyFilter() {
+  if (!map.getLayer('gaps-lines')) return;
+  const base = ['==', ['get', 'gap'], 1];
+  map.setFilter('gaps-lines', heavyOnly ? ['all', base, ['>=', ['get', 'v'], 2000]] : base);
+}
 
+// ─── Story panel ─────────────────────────────────────────────────────────────
 function renderStory() {
-  const v = VIEWS[currentView];
-  let html = `<h2>${v.title}</h2>${v.html}`;
-  if (v.legend.length) {
-    html += `<div class="legend">` + v.legend.map(([kind, color, label]) =>
-      `<div class="row"><span class="${kind}" style="background:${color}"></span>${label}</div>`).join('') + `</div>`;
+  const el = document.getElementById('story');
+  if (!primaryView) {
+    el.innerHTML = `<p style="margin-top:12px">Toggle a layer above to explore.</p>`;
+    return;
   }
+  const v = VIEWS[primaryView];
+  let html = `<h2>${v.title}</h2>${v.html}`;
 
-  if (currentView === 'stationage') {
+  if (primaryView === 'stationage') {
     const counts = {};
-    DATA.stations.forEach(s => {
-      const y = s.first ? Math.max(2018, +s.first.slice(0, 4)) : 0;
-      counts[y] = (counts[y] || 0) + 1;
-    });
-    const years = Object.keys(YEAR_COLORS).map(Number);
+    DATA.stations.forEach(s => { const y = fyOf(s); counts[y] = (counts[y] || 0) + 1; });
+    const years = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
     if (!activeYears) activeYears = new Set([...years, 0]);
     html += `<div class="yearchips">` + years.map(y =>
       `<button class="ychip ${activeYears.has(y) ? 'on' : ''}" data-y="${y}"
-        style="${activeYears.has(y) ? 'color:' + YEAR_COLORS[y] : ''}">${y === 2018 ? '≤2018' : y}</button>`).join('') +
+        style="${activeYears.has(y) ? 'color:' + binOf(y).color : ''}">${y === 2018 ? '≤2018' : y}</button>`).join('') +
       `<button class="ychip ${activeYears.has(0) ? 'on' : ''}" data-y="0">?</button></div>`;
     const maxC = Math.max(...years.map(y => counts[y] || 0), 1);
-    html += `<div class="legend"><div style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;
-      text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Stations added per year (of today's ${DATA.stations.length})</div>
+    html += `<div class="legend"><div class="ltitle">Stations added per year (of today's ${DATA.stations.length})</div>
       <div class="bars">` + years.map(y =>
       `<div class="brow"><span class="blab">${y === 2018 ? '≤2018' : y}</span>
-        <span class="btrack"><span class="bfill" style="width:${(counts[y] || 0) / maxC * 100}%;background:${YEAR_COLORS[y]}"></span></span>
-        <span class="bval">${counts[y] || 0}</span></div>`).join('') + `</div></div>`;
+        <span class="btrack"><span class="bfill" style="width:${(counts[y] || 0) / maxC * 100}%;background:${binOf(y).color}"></span></span>
+        <span class="bval">${counts[y] || 0}</span></div>`).join('') + `</div>` +
+      AGE_BINS.slice(0, 3).map(b => `<div class="row"><span class="swatch" style="background:${b.color}"></span>${b.label}</div>`).join('') +
+      `</div>`;
   }
 
-  if (lanesOn) {
-    html += `<div class="legend"><div style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;
-      text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Bike facilities · Boston + Cambridge + Somerville + Brookline</div>
-      <div class="row"><span class="line" style="background:#22c55e;height:4px"></span>Separated / protected</div>
-      <div class="row"><span class="line" style="background:#2dd4bf;height:3px"></span>Buffered lane</div>
-      <div class="row"><span class="line" style="background:#86efac;height:2px"></span>Conventional lane</div>
-      <div class="row"><span class="line" style="background:repeating-linear-gradient(90deg,#38bdf8 0 5px,transparent 5px 9px);height:3px"></span>Shared-use path</div>
-      <div class="row"><span class="line" style="background:repeating-linear-gradient(90deg,#a3a3a3 0 2px,transparent 2px 6px);height:2px"></span>Sharrows / shared</div>
+  if (primaryView === 'gaps') {
+    html += `<div class="yearchips">
+      <button class="ychip subtoggle ${heavyOnly ? 'on' : ''}" id="heavy-toggle">show heavy corridors only (≥2,000 trips)</button>
     </div>`;
   }
 
-  if (currentView === 'arbitrage') {
+  // legends for every active view (stacking-aware)
+  for (const av of activeViews) {
+    const lv = VIEWS[av];
+    if (!lv.legend.length) continue;
+    html += `<div class="legend"><div class="ltitle">${lv.title.split('—')[0].trim()}</div>` +
+      lv.legend.map(([kind, color, label]) =>
+        `<div class="row"><span class="${kind}" style="background:${color}"></span>${label}</div>`).join('') + `</div>`;
+  }
+  if (lanesOn) {
+    html += `<div class="legend"><div class="ltitle">Bike facilities · Boston + Cambridge + Somerville + Brookline</div>
+      <div class="row"><span class="line" style="background:#22c55e;height:4px"></span>Separated / protected</div>
+      <div class="row"><span class="line" style="background:#2dd4bf;height:3px"></span>Buffered lane</div>
+      <div class="row"><span class="line" style="background:#86efac;height:2px"></span>Conventional lane</div>
+      <div class="row"><span class="line" style="background:repeating-linear-gradient(90deg,#57cfc0 0 5px,transparent 5px 9px);height:3px"></span>Shared-use path</div>
+      <div class="row"><span class="line" style="background:repeating-linear-gradient(90deg,#9aa79b 0 2px,transparent 2px 6px);height:2px"></span>Sharrows / shared</div>
+    </div>`;
+  }
+
+  if (primaryView === 'arbitrage') {
     const top = [...DATA.arbitrage].sort((a, b) => b.trips - a.trips).slice(0, 5);
     html += `<div class="toplist">` + top.map((p, i) =>
       `<div class="item" data-i="${DATA.arbitrage.indexOf(p)}">
@@ -570,26 +694,34 @@ function renderStory() {
         <span>${p.aN.split(' - ')[0]} ⇄ ${p.bN.split(' - ')[0]}</span>
         <span class="val">${p.trips.toLocaleString()}</span></div>`).join('') + `</div>`;
   }
-  if (currentView === 'netflow') {
+  if (primaryView === 'netflow') {
     const st = DATA.stations.filter(s => s.net != null);
     const surplus = [...st].sort((a, b) => (b.net || 0) - (a.net || 0)).slice(0, 3);
     const deficit = [...st].sort((a, b) => (a.net || 0) - (b.net || 0)).slice(0, 3);
     html += `<div class="toplist">` + [...surplus, ...deficit].map(s =>
       `<div class="item" data-fly="${s.lng},${s.lat}">
-        <span class="rank">${s.net > 0 ? '▲' : '▼'}</span><span>${s.n}</span>
+        <span class="rank" style="color:${s.net > 0 ? OB : FR}">${s.net > 0 ? '▲' : '▼'}</span><span>${s.n}</span>
         <span class="val">${s.net > 0 ? '+' : ''}${s.net.toLocaleString()}</span></div>`).join('') + `</div>`;
   }
-  const el = document.getElementById('story');
+  if (primaryView === 'dockfit' && DATA.dockfit) {
+    const ex = DATA.dockfit.filter(d => d.a === 'expand').slice(0, 3);
+    const sh = DATA.dockfit.filter(d => d.a === 'shrink').slice(-3);
+    html += `<div class="toplist">` + [...ex, ...sh].map(d =>
+      `<div class="item" data-fly="${d.lng},${d.lat}">
+        <span class="rank" style="color:${d.a === 'expand' ? FR : OB_L}">${d.a === 'expand' ? '+' : '−'}</span>
+        <span>${d.n}</span><span class="val">${d.epd}/day · ${d.cap}🅿</span></div>`).join('') + `</div>`;
+  }
+
   el.innerHTML = html;
+
   el.querySelectorAll('.item[data-i]').forEach(item => item.addEventListener('click', () => {
     const p = DATA.arbitrage[+item.dataset.i];
     map.flyTo({ center: [(p.aLng + p.bLng) / 2, (p.aLat + p.bLat) / 2], zoom: 14.5, duration: 900 });
   }));
   el.querySelectorAll('.item[data-fly]').forEach(item => item.addEventListener('click', () => {
     const [lng, lat] = item.dataset.fly.split(',').map(Number);
-    map.flyTo({ center: [lng, lat], zoom: 14.5, duration: 900 });
+    map.flyTo({ center: [lng, lat], zoom: 15, duration: 900 });
   }));
-  // clickable station mentions: fly to + popup
   el.querySelectorAll('.stlink').forEach(sp => sp.addEventListener('click', () => {
     const q = sp.dataset.st;
     const st = DATA.stations.find(s => s.n.toLowerCase().includes(q)) ||
@@ -599,22 +731,22 @@ function renderStory() {
     const bits = [st.trips ? `${st.trips.toLocaleString()} trips` : '',
                   st.first ? `first trip ${st.first}` : '',
                   st.birth ? `avg bike birth ${st.birth}` : '',
-                  st.net != null ? `net flow ${st.net > 0 ? '+' : ''}${st.net.toLocaleString()}` : '']
+                  st.net != null ? `net flow ${st.net > 0 ? '+' : ''}${(st.net || 0).toLocaleString()}` : '']
       .filter(Boolean).join(' · ');
     new maplibregl.Popup().setLngLat([st.lng, st.lat])
       .setHTML(`<div class="pp"><b>${st.n}</b><div class="m">${bits}</div></div>`).addTo(map);
   }));
-  // station-age year filter chips
-  el.querySelectorAll('.ychip').forEach(c => c.addEventListener('click', () => {
+  el.querySelectorAll('.ychip[data-y]').forEach(c => c.addEventListener('click', () => {
     const y = +c.dataset.y;
     if (activeYears.has(y)) activeYears.delete(y); else activeYears.add(y);
     applyYearFilter();
     renderStory();
   }));
+  const ht = el.querySelector('#heavy-toggle');
+  if (ht) ht.addEventListener('click', () => { heavyOnly = !heavyOnly; applyHeavyFilter(); renderStory(); });
 }
 
 function renderStats() {
-  const trips = DATA.stations.reduce((s, x) => s + (x.trips || 0), 0);
   document.getElementById('statrow').innerHTML = [
     [DATA.stations.length, 'live stations'],
     ['24M+', 'trips 2018–26'],
@@ -623,6 +755,7 @@ function renderStats() {
   ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
 }
 
+// ─── Init ────────────────────────────────────────────────────────────────────
 async function init() {
   map = new maplibregl.Map({
     container: 'map',
@@ -630,9 +763,7 @@ async function init() {
     center: [-71.08, 42.355], zoom: 12.2, attributionControl: { compact: true },
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
-  // register 'load' synchronously (map.loaded() is unreliable while tiles
-  // stream) + poll isStyleLoaded() as fallback for renderers where the
-  // 'load' event stalls; layer creation gates on the data promise
+
   const dataReady = loadData();
   let booted = false;
   const boot = async () => {
@@ -641,26 +772,28 @@ async function init() {
     await dataReady;
     renderStats();
     initLayers();
-    setView('arbitrage');
+    syncLayers();
+    renderStory();
   };
   map.once('load', boot);
   const bootPoll = setInterval(() => {
     if (booted) { clearInterval(bootPoll); return; }
     if (map.isStyleLoaded()) { clearInterval(bootPoll); boot(); }
   }, 2000);
-  await dataReady;
-  if (!booted) renderStats();
 
   document.querySelectorAll('.chip').forEach(chip => chip.addEventListener('click', () => {
     const v = chip.dataset.view;
+    if (!booted) return;
     if (v === '__lanes') {
       if (!DATA.lanes) return;
       lanesOn = !lanesOn;
-      chip.classList.toggle('active', lanesOn);
-      LANE_LAYER_IDS.forEach(id => map.setLayoutProperty(id, 'visibility', lanesOn ? 'visible' : 'none'));
+      syncLayers();
       renderStory();
-    } else setView(v);
+    } else toggleView(v);
   }));
+
+  await dataReady;
+  if (!booted) renderStats();
 }
 
 init();

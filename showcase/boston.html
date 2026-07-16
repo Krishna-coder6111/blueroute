@@ -175,13 +175,13 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
 <section>
   <h2>Bike-lane gaps from <span class="grad">revealed demand</span></h2>
   <div class="stat-row">
-    <div class="stat"><div class="n c-red">38.8%</div><div class="l">of routed Boston bike volume rides on streets with <b>no bike lane within 30 m</b></div></div>
-    <div class="stat"><div class="n c-blue">395K</div><div class="l">trips in 2025's top-300 origin–destination flows, snapped to real street geometry (OSRM)</div></div>
+    <div class="stat"><div class="n c-blue">38.8%</div><div class="l">of routed Boston bike volume rides on streets with <b>no lane on the street itself</b> (within 30 m)</div></div>
+    <div class="stat"><div class="n c-red">5.3%</div><div class="l">is <b>truly unprotected</b> — more than 130 m from any lane, with no parallel facility nearby</div></div>
   </div>
   <ul>
-    <li>Top gap corridors: <b>Roxbury / Melnea Cass Blvd</b>, <b>Nubian Square</b>, <b>Columbus Ave / Back Bay</b>, the <b>South End</b>, and <b>Allston</b>.</li>
-    <li>This is a <b>lower bound</b> — the router already prefers streets with lanes, so laneless demand is undercounted.</li>
-    <li>Cambridge's lane network is merged in, so river-crossing corridors are scored on real infrastructure, not municipal boundaries.</li>
+    <li>Where the true gaps concentrate: <b>Roxbury core</b>, <b>South Boston / Broadway</b>, <b>City Point</b>, <b>Mission Hill</b>, and <b>East Boston</b> (395K trips, top-300 flows, OSRM street-routed).</li>
+    <li>Streets one block from an existing facility (e.g. Tremont St beside the Southwest Corridor) are <b>muted as parallel</b>, not counted as gaps.</li>
+    <li>A <b>lower bound</b> — the router already prefers laned streets; Cambridge's network is merged so river corridors score on real infrastructure.</li>
   </ul>
   <p class="foot">Every trip is a vote for a corridor (11_lane_gap_corridors.csv). Ready-made prioritization input for BTD's protected-lane program.</p>
 </section>
@@ -219,7 +219,7 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
   <h2>Next steps <span class="grad">with the City</span></h2>
   <ul>
     <li><b>Equity-weighted expansion</b>: the 25 MCLP sites (+106,930 residents covered) are a starting shortlist — co-rank with BTD priorities to close the 49.3% vs 23.2% access gap deliberately.</li>
-    <li><b>Corridor program input</b>: the ranked lane-gap corridors are delivered — 38.8% of routed volume is unprotected; Melnea Cass and Nubian Square lead the list.</li>
+    <li><b>Corridor program input</b>: ranked lane-gap corridors delivered — 5.3% of routed volume is truly unprotected (>130 m from any lane); the Roxbury core and South Boston/Broadway lead the list.</li>
     <li><b>Annual mixing report</b>: track income/race SI on the balanced panel as a standing equity metric.</li>
     <li><b>E-bike siting pilot</b>: concentrate e-bike capacity in low-income tracts and measure the connection effect against the Dec-2023 baseline.</li>
   </ul>
