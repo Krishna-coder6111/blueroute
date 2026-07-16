@@ -161,12 +161,24 @@ const AGE_BINS = [
 
 const VIEWS = {
   arbitrage: {
-    title: 'Points arbitrage — gaming the rewards program',
-    html: `<p>Trip metadata reveals <b>76 station pairs</b> being farmed for reward
-      points: short hops (≈2 min), back-and-forth, <b>~98% by members</b>, repeated
-      for years. The busiest pair logged <b>11,002 flips</b>; one averages
-      <b>55 seconds and 100 meters</b>. Arc width & depth of red = flip volume.</p>`,
-    legend: [['line', FR_L, 'hundreds of flips'], ['line', FR, 'thousands of flips']],
+    title: 'The "fraud" that turned out to be commuting',
+    html: `<p><b>56 station pairs</b> show the anomaly signature: ~2-min hops,
+      back-and-forth, ~95% members. But that's also the signature of a
+      <b>last-mile hop to transit</b> — so every pair was screened on behavior:
+      <b>tidality</b> (commuters flow one way at 8am, back at 5pm) and
+      <b>flip sessions</b> (3+ alternating rides within minutes, the true
+      points-farming fingerprint).</p>
+      <p>Verdict: <b>zero pairs are farming-like</b>. 15 are clearly tidal
+      commutes — <span class="stlink" data-st="davis square">Davis Sq</span> ⇄
+      <span class="stlink" data-st="teele square">Teele Sq</span> flows toward
+      the Red Line in the morning and back at night — and 41 are mixed local
+      hops. The biggest pair (Packard's Corner ⇄ Agganis, 20,188 trips) is a
+      BU commute corridor. Click any arc for its verdict.</p>`,
+    legend: [
+      ['line', OB, 'commute-like (tidal, no sessions)'],
+      ['line', '#b48ead', 'mixed signals (local hops)'],
+      ['line', FR, 'farming-like — none found'],
+    ],
   },
   traffic: {
     title: 'A decade of trips, station by station',
@@ -459,17 +471,27 @@ function initLayers() {
   map.addLayer({
     id: 'arbitrage', type: 'line', source: 'arbitrage',
     paint: {
-      'line-color': ['interpolate', ['linear'], ['get', 'trips'], 100, FR_L, 2500, FR, 11000, FR_D],
+      'line-color': ['match', ['coalesce', ['get', 'cls'], ''],
+        'farming-like', FR, 'commute-like', OB, 'mixed', '#b48ead',
+        'pre-program', GRAY,
+        FR_L],
       'line-opacity': 0.85,
-      'line-width': ['interpolate', ['linear'], ['get', 'trips'], 100, 1, 2000, 2.5, 11000, 5],
+      'line-width': ['interpolate', ['linear'], ['get', 'trips'], 100, 1.2, 2000, 2.8, 11000, 5],
     },
   });
   map.on('click', 'arbitrage', e => {
     const p = e.features[0].properties;
+    const CLS_TEXT = {
+      'farming-like': '<span class="warn">farming-like</span> — flip sessions, no commute tide',
+      'commute-like': '<i>commute-like</i> — tidal AM/PM flow, no flip sessions (last-mile)',
+      'mixed': 'mixed signals',
+      'pre-program': 'activity concentrated before mid-2023',
+    };
+    const verdict = p.cls ? `<br>${CLS_TEXT[p.cls] || p.cls} · tide ${p.tidal > 0 ? '+' : ''}${(+p.tidal).toFixed(2)} · ${Math.round(p.farm * 100)}% in flip sessions` : '';
     new maplibregl.Popup().setLngLat(e.lngLat)
       .setHTML(`<div class="pp"><b>${p.aN} ⇄ ${p.bN}</b>
-        <div class="m"><i>${(+p.trips).toLocaleString()}</i> flips · avg <i>${p.mins}</i> min ·
-        <i>${p.km}</i> km · <i>${p.member}%</i> members · active <i>${p.days}</i> days</div></div>`).addTo(map);
+        <div class="m"><i>${(+p.trips).toLocaleString()}</i> trips · avg <i>${p.mins}</i> min ·
+        <i>${p.km}</i> km · <i>${p.member}%</i> members · <i>${p.first || ''}</i> → <i>${p.last || ''}</i>${verdict}</div></div>`).addTo(map);
   });
   bindPointer('arbitrage');
 

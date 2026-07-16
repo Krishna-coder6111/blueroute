@@ -112,21 +112,22 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
   <p class="foot">58 bikes/month degrade on average (~1.9% of a ~3,056-bike fleet) ≈ $5,826/month at $100 per repair — a <b>lower bound</b>: it only counts bikes the score catches.</p>
 </section>
 
-<!-- 6 · Fraud detection -->
+<!-- 6 · Anomaly screen -->
 <section>
-  <h2>Points farming is real — <span class="grad">and detectable</span></h2>
+  <h2>The anomaly screen — <span class="grad">and what it really caught</span></h2>
   <img class="chart" src="assets/07_suspicious_pairs.png" alt="Top suspicious station pairs">
-  <p class="foot">76 suspicious bidirectional pairs flagged (Isolation Forest + rules, contamination swept 0.05–0.20). Top pair 41↔9: <b>11,002 trips</b>, avg 2.3 min, 0.4 km, 98% members.</p>
+  <p class="foot">56 unique bidirectional pairs flagged (Isolation Forest + rules, contamination swept 0.05–0.20): ~2-min hops, ~95% members, years of activity. The naive read: points farming. The behavioral screen says otherwise →</p>
 </section>
 
-<!-- 7 · Where farming happens -->
+<!-- 7 · Farming vs last-mile -->
 <section>
-  <h2>The farm is in <span class="grad">Kendall Square</span></h2>
+  <h2>Behavioral screening: <span class="grad">zero farming found</span></h2>
   <ul>
-    <li>#1 points route: <b>Ames St at Main St → MIT Stata</b> — 240 m apart, station surplus <b class="c-green">+20,451</b> vs deficit <b class="c-red">−9,217</b>.</li>
-    <li>All top farming routes sit in the Kendall corridor — where Bluebikes pays points to rebalance.</li>
-    <li>Extreme case: pair M32070 ↔ M32071 — repeated <b>55-second, 100 m</b> flips.</li>
-    <li>Top pair 41↔9 activity <b>stops in March 2023</b> — worth checking against valet / points-program changes.</li>
+    <li>Two discriminators no farmer can fake and no commuter shows: <b>tidality</b> (one direction at 8am, reverse at 5pm) and <b>flip sessions</b> (3+ alternating rides within minutes).</li>
+    <li>Result across all 56 pairs: <b class="c-green">15 tidal commute corridors</b>, <b>41 mixed local hops</b>, <b class="c-red">0 farming-like</b> — flip-session share ≤6% everywhere.</li>
+    <li>Top pair (Packard's Corner ⇄ Agganis, BU): <b>20,188 trips</b> through Jan 2026, tide +0.40 — a commute corridor. Its apparent "stop" in Mar 2023 was a station-ID schema artifact, now fixed.</li>
+    <li>Davis Sq ⇄ Teele Sq (5,760 trips): morning flow toward the Red Line, evening flow back — <b>last-mile transit access</b>, not gaming.</li>
+    <li>Operational upshot: these pairs mark <b>last-mile demand corridors</b> worth serving with docks — and the rewards program shows no pair-level abuse to police.</li>
   </ul>
 </section>
 
@@ -222,7 +223,7 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
   <ul>
     <li><b>Validate</b> the rejection flags, health scores, and the 13 disabled-dock flags against your maintenance logs — the missing ground truth.</li>
     <li><b>Score the current fleet</b>: post-2024 data drops bike IDs; internal IDs or telemetry would restore per-bike health tracking.</li>
-    <li><b>Audit the points program</b>: review the 76 flagged pairs; confirm whether the March 2023 drop-off in pair 41↔9 matches a program change.</li>
+    <li><b>Serve the last-mile corridors</b>: the 56 flagged pairs are dense transit-access demand, not fraud — dock capacity there pays off directly.</li>
     <li><b>Pilot Kendall rebalancing</b>: Ames St expansion + predictor-driven valet timing.</li>
   </ul>
   <p class="muted" style="font-size:.6em; margin-top:1.4em;">Krishna Singh · Northeastern University · singh.krish@northeastern.edu</p>

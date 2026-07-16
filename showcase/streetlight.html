@@ -183,9 +183,9 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
 
 <!-- 12 · Anomaly detection -->
 <section>
-  <h2>Anomaly detection with <span class="grad">sensitivity sweeps</span></h2>
-  <img class="chart" src="assets/07_suspicious_pairs.png" alt="Top suspicious station pairs" style="max-height:470px;">
-  <p class="foot">Isolation Forest over pair-level features, contamination swept 0.05–0.20 for robustness: 76 suspicious bidirectional pairs. Top pair 41↔9: 11,002 trips averaging 2.3 min / 0.4 km, 98% members — and activity halts in March 2023, a checkable program-change fingerprint.</p>
+  <h2>Anomaly flags need a <span class="grad">behavioral second stage</span></h2>
+  <img class="chart" src="assets/07_suspicious_pairs.png" alt="Top suspicious station pairs" style="max-height:420px;">
+  <p class="foot">Stage 1 (Isolation Forest, contamination swept 0.05–0.20) flagged 56 unique "farming-like" pairs. Stage 2 — tidality (AM/PM directional flow) + flip-session detection (3+ alternating rides within minutes) — reclassified them: <b>15 tidal last-mile commute corridors, 41 mixed local hops, 0 farming</b>. Bonus catch: the top pair's apparent March-2023 stop was a station-ID schema artifact; crosswalked, it's a 20,188-trip BU commute corridor. Anomaly ≠ abuse — the metadata can tell the difference.</p>
 </section>
 
 <!-- 13 · Live demo -->
