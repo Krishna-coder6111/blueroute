@@ -6,54 +6,61 @@
 <title>Boston Bikeshare Intelligence — City of Boston</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
 <style>
+/* City of Boston brand palette (boston.gov):
+   Charles Blue #091F2F · Optimistic Blue #288BE4 · Freedom Trail Red #FB4D42
+   Supporting White #FFFFFF · light gray #D2D2D2 */
 :root{
-  --bg:#080e17; --panel:#0d1520; --line:#1c2d42; --text:#e2e8f0; --muted:#8b9cb8;
-  --blue:#38bdf8; --purple:#a78bfa; --indigo:#60a5fa; --green:#4ade80; --red:#f87171; --amber:#f59e0b;
+  --bg:#091F2F; --panel:#0F2A40; --line:#27506E; --text:#FFFFFF; --muted:#D2D2D2;
+  --blue:#288BE4; --blue-tint:#8ABEEE; --red:#FB4D42;
+  /* legacy accent classes remapped to the brand palette */
+  --purple:#8ABEEE; --indigo:#288BE4; --green:#288BE4; --amber:#8ABEEE;
 }
 .reveal-viewport{ background:var(--bg) !important; }
-.reveal{ font-family:"DM Sans",-apple-system,"Segoe UI",sans-serif; font-size:30px; color:var(--text); }
+.reveal{ font-family:"Lora",Georgia,serif; font-size:30px; color:var(--text); }
 .reveal .slides section{ text-align:left; }
 .reveal .slides section.center-slide{ text-align:center; }
-.reveal h1,.reveal h2,.reveal h3{ font-family:"DM Sans",sans-serif; font-weight:700;
-  letter-spacing:-0.02em; text-transform:none; color:var(--text); line-height:1.12; }
-.reveal h1{ font-size:2.2em; }
-.reveal h2{ font-size:1.3em; margin-bottom:.55em; }
-.reveal .grad{ background:linear-gradient(92deg,#38bdf8 0%,#a78bfa 55%,#60a5fa 100%);
-  -webkit-background-clip:text; background-clip:text; color:transparent; }
-.kicker{ font-family:"JetBrains Mono",monospace; font-size:.5em; letter-spacing:.22em;
+.reveal h1,.reveal h2,.reveal h3{ font-family:"Montserrat",-apple-system,"Segoe UI",sans-serif;
+  font-weight:800; letter-spacing:.035em; text-transform:uppercase; color:var(--text); line-height:1.18; }
+.reveal h1{ font-size:1.85em; }
+.reveal h2{ font-size:1.08em; margin-bottom:.65em; }
+.reveal .grad{ color:var(--blue); }
+.kicker{ font-family:"Montserrat",sans-serif; font-weight:600; font-size:.5em; letter-spacing:.25em;
   text-transform:uppercase; color:var(--blue); margin:0 0 1.4em 0; }
+.kicker::before{ content:""; display:inline-block; width:1.6em; height:.28em;
+  background:var(--red); margin-right:.9em; vertical-align:.18em; }
 .muted{ color:var(--muted); }
-.mono{ font-family:"JetBrains Mono",monospace; }
+.mono{ font-family:Consolas,"Courier New",monospace; }
 .c-blue{ color:var(--blue); } .c-purple{ color:var(--purple); } .c-green{ color:var(--green); }
 .c-red{ color:var(--red); } .c-amber{ color:var(--amber); }
 .big{ font-size:2.3em; font-weight:700; line-height:1.05; }
 .reveal ul{ margin-left:.9em; font-size:.82em; }
-.reveal li{ margin:.5em 0; line-height:1.38; }
+.reveal li{ margin:.5em 0; line-height:1.42; }
 .reveal li::marker{ color:var(--blue); }
-.panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:.7em .95em; }
+.panel{ background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:.7em .95em; }
 .stat-row{ display:flex; gap:.8em; margin:.9em 0; }
-.stat{ flex:1; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:.65em .8em; }
-.stat .n{ font-size:1.6em; font-weight:700; line-height:1.1; }
+.stat{ flex:1; background:var(--panel); border:1px solid var(--line); border-top:4px solid var(--blue);
+  border-radius:6px; padding:.65em .8em; }
+.stat .n{ font-family:"Montserrat",sans-serif; font-size:1.6em; font-weight:700; line-height:1.1; }
 .stat .l{ font-size:.52em; color:var(--muted); margin-top:.3em; line-height:1.35; }
-.reveal img.chart{ border:1px solid var(--line); border-radius:12px; background:var(--panel);
+.reveal img.chart{ border:1px solid var(--line); border-radius:6px; background:var(--panel);
   max-width:100%; max-height:560px; margin:0; }
 .cols{ display:flex; gap:1.1em; align-items:center; }
 .cols>div{ flex:1; min-width:0; }
 .foot{ font-size:.48em; color:var(--muted); margin-top:1.1em; line-height:1.4; }
-.tag{ display:inline-block; font-family:"JetBrains Mono",monospace; font-size:.48em;
+.tag{ display:inline-block; font-family:"Montserrat",sans-serif; font-size:.48em;
   padding:.3em .8em; border:1px solid var(--line); border-radius:999px; color:var(--muted); margin:0 .35em .35em 0; }
 .reveal a{ color:var(--blue); }
-a.demo-link{ display:block; background:var(--panel); border:1px solid var(--line); border-radius:14px;
+a.demo-link{ display:block; background:var(--panel); border:1px solid var(--line); border-radius:6px;
   padding:.7em 1em; margin:.5em 0; text-decoration:none; font-size:.85em; }
 a.demo-link:hover{ border-color:var(--blue); }
-a.demo-link .t{ font-weight:700; color:var(--text); }
+a.demo-link .t{ font-family:"Montserrat",sans-serif; font-weight:700; color:var(--text); }
 a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
-.reveal .slide-number{ background:transparent; color:var(--muted); font-family:"JetBrains Mono",monospace; }
+.reveal .slide-number{ background:transparent; color:var(--muted); font-family:"Montserrat",sans-serif; }
 .reveal .progress{ color:var(--blue); }
 .reveal .controls{ color:var(--muted); }
 </style>
@@ -149,45 +156,52 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
   </div>
 </section>
 
-<!-- 9 · Dock expansion -->
+<!-- 9 · New-station siting (MCLP) -->
 <section>
-  <h2>Where the next docks <span class="grad">should go</span></h2>
-  <div class="cols">
-    <div class="panel">
-      <p style="font-size:.7em; margin:0 0 .3em 0;"><b class="c-green">Expand</b></p>
-      <ul style="font-size:.62em; margin-left:1.1em;">
-        <li><b>Ames St at Main St</b> — 19 docks vs ~120K trips</li>
-        <li>MIT Vassar St</li>
-        <li>Kenmore Square</li>
-      </ul>
-    </div>
-    <div class="panel">
-      <p style="font-size:.7em; margin:0 0 .3em 0;"><b class="c-red">Right-size down</b></p>
-      <ul style="font-size:.62em; margin-left:1.1em;">
-        <li>Mt. Hope St</li>
-        <li>Newton Highlands</li>
-        <li>Centre St, West Roxbury</li>
-      </ul>
-    </div>
+  <h2>Where the next 25 stations <span class="grad">should go</span></h2>
+  <div class="stat-row">
+    <div class="stat"><div class="n c-blue">106,930</div><div class="l">currently-unserved residents brought within a 500 m walk by 25 optimal new sites (maximal-coverage location problem)</div></div>
+    <div class="stat"><div class="n c-green">+10.1%</div><div class="l">gain in population coverage from those 25 sites alone</div></div>
   </div>
   <ul>
-    <li>Next iteration: formal location–allocation (p-median coverage optimization) with an equity term, so expansion closes the 49% / 23% access gap deliberately.</li>
-    <li>Caveat: candidate list built on an older station snapshot — verify against live GBFS first.</li>
+    <li><b>The frontier is at the edges</b>: Everett / Malden, East Boston → Revere, Hyde Park, and West Roxbury dominate the optimal-site list.</li>
+    <li>Dock sizing from the system-wide baseline — docks = 3.1 + 1.60·ln(trips), r = 0.42 — suggests 13–18 docks per new site.</li>
+    <li>Earlier heuristic picks (expand Ames St, right-size West Roxbury) still apply to the <i>existing</i> network; this is the formal answer for <i>new</i> steel.</li>
   </ul>
+  <p class="foot">Greedy MCLP over census block groups, verified July 2026 (12_new_station_mclp.csv). Pairs directly with the 49.3% / 23.2% access-equity gap: coverage growth can be pointed at underserved tracts.</p>
 </section>
 
-<!-- 10 · Bike lanes -->
+<!-- 10 · Bike-lane gaps -->
 <section>
-  <h2>Bike-lane corridors from <span class="grad">revealed demand</span></h2>
+  <h2>Bike-lane gaps from <span class="grad">revealed demand</span></h2>
+  <div class="stat-row">
+    <div class="stat"><div class="n c-red">38.8%</div><div class="l">of routed Boston bike volume rides on streets with <b>no bike lane within 30 m</b></div></div>
+    <div class="stat"><div class="n c-blue">395K</div><div class="l">trips in 2025's top-300 origin–destination flows, snapped to real street geometry (OSRM)</div></div>
+  </div>
   <ul>
-    <li>Every trip is a vote for a corridor: snap top origin–destination flows to real street geometry (OSRM routing).</li>
-    <li>Overlay the city's existing bike-lane shapefile (Boston open data).</li>
-    <li>Rank corridors by <b>bike volume without a lane</b> — the highest-leverage gaps first.</li>
-    <li>Status: method scoped, v1 in progress — a ready-made collaboration with BTD planning.</li>
+    <li>Top gap corridors: <b>Roxbury / Melnea Cass Blvd</b>, <b>Nubian Square</b>, <b>Columbus Ave / Back Bay</b>, the <b>South End</b>, and <b>Allston</b>.</li>
+    <li>This is a <b>lower bound</b> — the router already prefers streets with lanes, so laneless demand is undercounted.</li>
+    <li>Cambridge's lane network is merged in, so river-crossing corridors are scored on real infrastructure, not municipal boundaries.</li>
   </ul>
+  <p class="foot">Every trip is a vote for a corridor (11_lane_gap_corridors.csv). Ready-made prioritization input for BTD's protected-lane program.</p>
 </section>
 
-<!-- 11 · Live demo -->
+<!-- 11 · Movable-stations counterfactual -->
+<section>
+  <h2>The coverage ceiling: <span class="grad">if every station were movable</span></h2>
+  <div class="stat-row">
+    <div class="stat"><div class="n">69.5%</div><div class="l">of the 1.53M-person service envelope lives within a 500 m walk of a station today</div></div>
+    <div class="stat"><div class="n c-blue">99.7%</div><div class="l">coverage if all 606 stations were freely re-placed (population-weighted k-means, Cooper 1963) — <b>+30.2pp</b></div></div>
+    <div class="stat"><div class="n c-purple">83.8%</div><div class="l">even <i>random</i> placement covers more residents — density does most of the work</div></div>
+  </div>
+  <ul>
+    <li><b>This does not mean the network is misplaced.</b> Actual siting optimizes trip demand and capacity redundancy — hence downtown clustering — not residential coverage.</li>
+    <li>The +30.2pp is the <b>quantified price of that trade-off</b>: a planning dial for weighing coverage against throughput, not an indictment.</li>
+  </ul>
+  <p class="foot">13_movable_stations.csv. Complements the 25-site MCLP: one asks "where next?", this asks "what is the theoretical ceiling?"</p>
+</section>
+
+<!-- 12 · Live demo -->
 <section>
   <h2><span class="grad">Live demo</span> — see it working today</h2>
   <a class="demo-link" href="../" target="_blank">
@@ -196,16 +210,16 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
   </a>
   <a class="demo-link" href="../atlas/" target="_blank">
     <div class="t">Station Atlas</div>
-    <div class="d">Interactive maps: equity coverage, flows, and station communities</div>
+    <div class="d">Interactive maps: equity coverage, flows, station communities, station age (per-year filter), typed bike-lane layers (separated / buffered / lane / path / sharrows across Boston, Cambridge, Somerville, Brookline), lane-gap corridors, and proposed stations</div>
   </a>
 </section>
 
-<!-- 12 · Next steps -->
+<!-- 13 · Next steps -->
 <section>
   <h2>Next steps <span class="grad">with the City</span></h2>
   <ul>
-    <li><b>Equity-weighted expansion</b>: co-design the location–allocation run with BTD priorities (coverage gap 49.3% vs 23.2%).</li>
-    <li><b>Corridor shortlist</b>: deliver the ranked bike-lane gap analysis from OD desire lines.</li>
+    <li><b>Equity-weighted expansion</b>: the 25 MCLP sites (+106,930 residents covered) are a starting shortlist — co-rank with BTD priorities to close the 49.3% vs 23.2% access gap deliberately.</li>
+    <li><b>Corridor program input</b>: the ranked lane-gap corridors are delivered — 38.8% of routed volume is unprotected; Melnea Cass and Nubian Square lead the list.</li>
     <li><b>Annual mixing report</b>: track income/race SI on the balanced panel as a standing equity metric.</li>
     <li><b>E-bike siting pilot</b>: concentrate e-bike capacity in low-income tracts and measure the connection effect against the Dec-2023 baseline.</li>
   </ul>

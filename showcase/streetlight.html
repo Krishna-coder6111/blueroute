@@ -150,21 +150,45 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
   </div>
 </section>
 
-<!-- 10 · Prediction -->
+<!-- 10 · Prediction — honest chronological eval -->
 <section>
-  <h2>Prediction: <span class="grad">dock-level availability</span></h2>
-  <img class="chart" src="assets/06_neu_dock_r2.png" alt="Per-station dock model R2" style="max-height:470px;">
-  <p class="foot">Per-station hourly models, honestly reported: R² 0.13–0.63, MAE 0.8–2.2 bikes. An earlier aggregate target scored 0.79 — we dropped it because per-station is the decision-relevant unit. Deployed in the live router as arrival-time dock predictions.</p>
+  <h2>Prediction, <span class="grad">evaluated the honest way</span></h2>
+  <div class="stat-row">
+    <div class="stat"><div class="n c-green">0.74→0.51</div><div class="l"><b>Forsyth St</b> R² train→test · RMSE 2.94, MAE 2.06 trips/hr · beats seasonal-naive R² 0.42</div></div>
+    <div class="stat"><div class="n c-green">0.71→0.57</div><div class="l"><b>Ruggles</b> R² train→test · MAE 1.93 · naive 0.37</div></div>
+    <div class="stat"><div class="n c-red">0.62→0.04</div><div class="l"><b>NEU North Parking</b> and <b>Wentworth</b> (0.45→0.00) both <b>lose</b> to a naive hour×weekday mean</div></div>
+  </div>
+  <ul>
+    <li>Chronological train→test split against a <b>seasonal-naive baseline</b> — no shuffled-CV leakage, and we report the losses: a regime change in the 2025–26 test window breaks the low-volume stations.</li>
+    <li>The pattern is the finding: <b>high-volume stations generalize, low-volume don't</b>.</li>
+    <li>Residual curvature is significant at all 4 stations — the model over-predicts peaks, a capacity-ceiling effect (full docks clip observable demand).</li>
+  </ul>
+  <p class="foot">05b_neu_dock_eval.csv. Two optimistic numbers were retired on the way here: an aggregate R² 0.79 (wrong unit) and in-sample per-station fits (wrong split).</p>
 </section>
 
-<!-- 11 · Anomaly detection -->
+<!-- 11 · Counterfactual coverage -->
+<section>
+  <h2>Method detail: <span class="grad">counterfactuals need dumb baselines</span></h2>
+  <div class="stat-row">
+    <div class="stat"><div class="n">69.5%</div><div class="l">of the 1.53M-person envelope within a 500 m walk of the actual 606-station network</div></div>
+    <div class="stat"><div class="n c-blue">99.7%</div><div class="l">if all 606 stations were freely re-placed — population-weighted k-means (Cooper 1963) — <b>+30.2pp</b></div></div>
+    <div class="stat"><div class="n c-purple">83.8%</div><div class="l">random placement control — density alone closes half the gap</div></div>
+  </div>
+  <ul>
+    <li><b>The framing is the method</b>: this does <b>not</b> say the network is misplaced. Actual siting optimizes trip demand + capacity redundancy (downtown clustering), not residential coverage — the number quantifies that trade-off.</li>
+    <li>Without the random control, +30.2pp reads as an indictment; with it, most of the headroom is just where people live.</li>
+  </ul>
+  <p class="foot">13_movable_stations.csv. Same discipline as the balanced panel: report the counterfactual next to the baseline that could explain it away.</p>
+</section>
+
+<!-- 12 · Anomaly detection -->
 <section>
   <h2>Anomaly detection with <span class="grad">sensitivity sweeps</span></h2>
   <img class="chart" src="assets/07_suspicious_pairs.png" alt="Top suspicious station pairs" style="max-height:470px;">
   <p class="foot">Isolation Forest over pair-level features, contamination swept 0.05–0.20 for robustness: 76 suspicious bidirectional pairs. Top pair 41↔9: 11,002 trips averaging 2.3 min / 0.4 km, 98% members — and activity halts in March 2023, a checkable program-change fingerprint.</p>
 </section>
 
-<!-- 12 · Live demo -->
+<!-- 13 · Live demo -->
 <section>
   <h2><span class="grad">Live demo</span> — the stack, running</h2>
   <a class="demo-link" href="../" target="_blank">
@@ -173,12 +197,12 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
   </a>
   <a class="demo-link" href="../atlas/" target="_blank">
     <div class="t">Station Atlas</div>
-    <div class="d">Interactive maps of flows, communities, and equity coverage</div>
+    <div class="d">Interactive maps of flows, communities, and equity coverage — plus station age (per-year filter), typed bike-lane layers (separated / buffered / lane / path / sharrows across Boston, Cambridge, Somerville, Brookline), lane-gap corridors, and proposed-station views</div>
   </a>
-  <p class="foot">A GBFS logger snapshots station status every 10 minutes — unlocking broken-dock detection and supply-vs-preference questions trip data can't answer.</p>
+  <p class="foot">A GBFS logger snapshots station status every 10 minutes — first pass already flagged 13 stations with docks disabled &gt;48 h and 2 fully offline; broken docks are invisible in trip data alone.</p>
 </section>
 
-<!-- 13 · Next steps -->
+<!-- 14 · Next steps -->
 <section>
   <h2>Why this maps to <span class="grad">StreetLight's problems</span></h2>
   <ul>

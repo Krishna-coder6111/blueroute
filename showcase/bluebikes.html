@@ -157,25 +157,52 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
   </ul>
 </section>
 
-<!-- 9 · Dock prediction -->
+<!-- 9 · New-station siting (MCLP) -->
 <section>
-  <h2>Dock availability is <span class="grad">predictable</span></h2>
-  <img class="chart" src="assets/06_neu_dock_r2.png" alt="Per-station dock model R2">
-  <p class="foot">Per-station models around Northeastern: R² up to 0.63, MAE 1.1–2.2 bikes. Ruggles is the busiest (168K departures); the crunch hits 8–9 am. Honest per-station numbers — not an inflated aggregate.</p>
-</section>
-
-<!-- 10 · Broken docks -->
-<section>
-  <h2>Broken docks are <span class="grad">invisible in trip data</span></h2>
+  <h2>25 new sites put <span class="grad">106,930 more people</span> in reach</h2>
+  <div class="stat-row">
+    <div class="stat"><div class="n c-green">+10.1%</div><div class="l">population coverage gain from 25 optimal new sites (maximal-coverage location problem, 500 m walk)</div></div>
+    <div class="stat"><div class="n c-blue">13–18</div><div class="l">suggested docks per site from the system baseline: docks = 3.1 + 1.60·ln(trips), r = 0.42</div></div>
+  </div>
   <ul>
-    <li>A dead dock generates <b>no trips</b> — you cannot see it in ride history at all.</li>
-    <li>Fix: a GBFS status logger snapshots every station <b>every 10 minutes</b> (running now).</li>
-    <li>Detection rule: station stuck full/empty while ≥2 neighbors within 500 m keep churning, or <span class="mono" style="font-size:.85em;">num_docks_disabled</span> &gt; 0 persisting over 48 h.</li>
-    <li>Four weeks of snapshots is enough to start flagging candidates for field checks.</li>
+    <li>The expansion frontier is at the edges: <b>Everett / Malden</b>, <b>East Boston → Revere</b>, <b>Hyde Park</b>, <b>West Roxbury</b>.</li>
+    <li>Complements the within-network moves (expand Ames St, right-size West Roxbury): this is where <b>new</b> steel earns the most coverage.</li>
   </ul>
+  <p class="foot">Greedy MCLP over census block groups, 106,930 currently-unserved residents covered (12_new_station_mclp.csv).</p>
 </section>
 
-<!-- 11 · Live demo -->
+<!-- 10 · Dock prediction — honest chronological eval -->
+<section>
+  <h2>Dock prediction survives an <span class="grad">honest chronological test</span> — where it matters</h2>
+  <div class="stat-row">
+    <div class="stat"><div class="n c-green">0.74→0.51</div><div class="l"><b>Forsyth St</b> R² train→test · RMSE 2.94, MAE 2.06 trips/hr · beats seasonal-naive R² 0.42</div></div>
+    <div class="stat"><div class="n c-green">0.71→0.57</div><div class="l"><b>Ruggles</b> R² train→test · MAE 1.93 · naive 0.37</div></div>
+    <div class="stat"><div class="n c-red">0.62→0.04</div><div class="l"><b>NEU North Parking</b> — loses to a naive hour×weekday mean; <b>Wentworth</b> 0.45→0.00 likewise</div></div>
+  </div>
+  <ul>
+    <li><b>High-volume stations generalize; low-volume don't</b> — a regime change in the 2025–26 test window breaks the quiet docks.</li>
+    <li>Residual curvature is significant at all 4 stations: the model <b>over-predicts peaks</b> — a capacity-ceiling effect, i.e. full docks clip demand.</li>
+  </ul>
+  <p class="foot">Chronological train→test split, 2025–26 held-out window; naive baseline = per-station hour×weekday mean (05b_neu_dock_eval.csv). These are the deployable numbers — not in-sample fits.</p>
+</section>
+
+<!-- 11 · Broken docks — GBFS monitoring results -->
+<section>
+  <h2>Broken docks are <span class="grad">invisible in trip data</span> — so we log GBFS</h2>
+  <div class="stat-row">
+    <div class="stat"><div class="n c-amber">13</div><div class="l">stations with docks disabled <b>&gt;48 h</b> in the first monitoring pass</div></div>
+    <div class="stat"><div class="n c-blue">22</div><div class="l">stations with ≥1 disabled dock <b>right now</b></div></div>
+    <div class="stat"><div class="n c-red">2</div><div class="l">fully offline: <b>Marion St at Harvard St</b> · <b>Cummins Hwy at Blue Hill Ave</b></div></div>
+  </div>
+  <ul>
+    <li>A dead dock generates <b>no trips</b> — you cannot see it in ride history at all; the logger snapshots every station <b>every 10 minutes</b>.</li>
+    <li>Detection rule: stuck full/empty while ≥2 neighbors within 500 m keep churning, or <span class="mono" style="font-size:.85em;">num_docks_disabled</span> &gt; 0 persisting over 48 h.</li>
+    <li>Flags are field-check candidates from a first pass, not confirmed outages — the list sharpens as the log grows.</li>
+  </ul>
+  <p class="foot">10_dock_health_flags.csv, first monitoring pass over 606 stations.</p>
+</section>
+
+<!-- 12 · Live demo -->
 <section>
   <h2><span class="grad">Live demo</span> — this already runs</h2>
   <a class="demo-link" href="../" target="_blank">
@@ -184,16 +211,16 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
   </a>
   <a class="demo-link" href="../atlas/" target="_blank">
     <div class="t">Station Atlas</div>
-    <div class="d">Interactive maps of the analyses in this deck</div>
+    <div class="d">Interactive maps of the analyses in this deck — plus station age (per-year filter), typed bike-lane layers (separated / buffered / lane / path / sharrows across Boston, Cambridge, Somerville, Brookline), lane-gap corridors, and proposed-station views</div>
   </a>
   <p class="foot">Dock predictor blends hourly net-flow profiles (607 stations, built from 4.75M trips 2025–26) with live counts.</p>
 </section>
 
-<!-- 12 · Next steps -->
+<!-- 13 · Next steps -->
 <section>
   <h2>Next steps <span class="grad">with Bluebikes</span></h2>
   <ul>
-    <li><b>Validate</b> the rejection flags and health scores against your maintenance logs — the missing ground truth.</li>
+    <li><b>Validate</b> the rejection flags, health scores, and the 13 disabled-dock flags against your maintenance logs — the missing ground truth.</li>
     <li><b>Score the current fleet</b>: post-2024 data drops bike IDs; internal IDs or telemetry would restore per-bike health tracking.</li>
     <li><b>Audit the points program</b>: review the 76 flagged pairs; confirm whether the March 2023 drop-off in pair 41↔9 matches a program change.</li>
     <li><b>Pilot Kendall rebalancing</b>: Ames St expansion + predictor-driven valet timing.</li>

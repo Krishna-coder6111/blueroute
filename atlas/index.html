@@ -69,6 +69,24 @@
   .toplist .rank { font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--amber); flex-shrink: 0; }
   .toplist .val { margin-left: auto; font-family: 'JetBrains Mono', monospace; color: var(--bike); flex-shrink: 0; }
 
+  .stlink { color: #60a5fa; cursor: pointer; border-bottom: 1px dotted #60a5fa66; }
+  .stlink:hover { color: #93c5fd; }
+
+  .yearchips { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+  .ychip {
+    padding: 3px 8px; border-radius: 6px; font-size: 10px;
+    font-family: 'JetBrains Mono', monospace; cursor: pointer;
+    border: 1px solid var(--border); color: var(--muted); background: transparent;
+  }
+  .ychip.on { color: var(--text); border-color: currentColor; }
+
+  .bars { margin: 8px 0; }
+  .bars .brow { display: flex; align-items: center; gap: 6px; padding: 1.5px 0; }
+  .bars .blab { width: 42px; font-size: 9.5px; font-family: 'JetBrains Mono', monospace; color: var(--text2); flex-shrink: 0; }
+  .bars .btrack { flex: 1; height: 9px; border-radius: 3px; background: #0a1220; overflow: hidden; }
+  .bars .bfill { height: 100%; border-radius: 3px; }
+  .bars .bval { width: 30px; font-size: 9.5px; font-family: 'JetBrains Mono', monospace; color: var(--muted); text-align: right; flex-shrink: 0; }
+
   .foot { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; gap: 12px; flex-wrap: wrap; }
   .foot a { font-size: 11px; color: var(--bike); text-decoration: none; font-family: 'JetBrains Mono', monospace; }
   .foot a:hover { text-decoration: underline; }
@@ -101,7 +119,8 @@
   <div class="views" id="views">
     <button class="chip active" data-view="arbitrage">🎯 Points arbitrage</button>
     <button class="chip" data-view="traffic">🚲 Traffic</button>
-    <button class="chip" data-view="freshness">✨ Fleet age</button>
+    <button class="chip" data-view="stationage">🆕 Station age</button>
+    <button class="chip" data-view="freshness">✨ Bike age</button>
     <button class="chip" data-view="equity">🏘 Income</button>
     <button class="chip" data-view="netflow">⚖ Net flow</button>
     <button class="chip" data-view="gaps">🚧 Lane gaps</button>
@@ -141,18 +160,36 @@ const VIEWS = {
       <b>≈11 km/h</b> on classics and <b>≈15 km/h</b> on e-bikes (34% faster).</p>`,
     legend: [['swatch', '#38bdf8', 'dot size = total trips']],
   },
+  stationage: {
+    title: 'The system is still growing — fast',
+    html: `<p>Each station colored by the year of its <b>first-ever trip</b> — a
+      reliable proxy for when it was installed. The newest:
+      <span class="stlink" data-st="andrew t stop - dorchester ave (east)">Andrew T Stop (Dorchester Ave)</span>,
+      first trips <b>June 9, 2026</b>, after a spring wave including
+      <span class="stlink" data-st="broad canal way north">Broad Canal Way North</span> and
+      <span class="stlink" data-st="125 cambridgepark dr">125 Cambridgepark Dr</span>.</p>
+      <p>Filter years below. Notes: trip records start Jul 2018, so "≤2018"
+      includes the original 2011-era core; 2021 is slightly undercounted
+      (raw-data gap being backfilled); gray = no trips yet matched (very new
+      or renamed).</p>`,
+    legend: [],   // year chips + chart rendered instead
+  },
   freshness: {
-    title: 'Where the newest bikes live',
-    html: `<p>Average "birth year" of bikes docked at each station. <b>Salem</b>
-      (added 2021) rides the newest fleet — avg birth 2020.5. Legacy downtown
-      Boston stations average exactly <b>2018.0</b> with 0% new bikes.</p>
-      <p>Newest <i>stations</i>: Andrew T Stop (Dorchester Ave), opened
-      <b>June 2026</b>, after a spring wave of 15+ additions.</p>`,
+    title: 'Where the newest bikes live (legacy fleet)',
+    html: `<p>Average "birth year" of the <b>bikes</b> docked at each station —
+      not the station's own age (see 🆕 for that). Computable only for the
+      pre-2024 fleet: bike IDs disappeared from published data in the schema
+      change, freezing this signal in time.</p>
+      <p><span class="stlink" data-st="salem willows park">Salem</span> (added 2021)
+      rides the newest fleet — avg birth 2020.5. Legacy downtown stations like
+      <span class="stlink" data-st="beacon st at arlington st">Beacon St at Arlington St</span>
+      average exactly <b>2018.0</b> with 0% new bikes.</p>`,
     legend: [
       ['swatch', '#ef4444', 'avg birth 2018 (oldest)'],
       ['swatch', '#f59e0b', '2019'],
       ['swatch', '#facc15', '2020'],
       ['swatch', '#4ade80', '2020.5+ (newest)'],
+      ['swatch', '#334155', 'no bike-id data'],
     ],
   },
   equity: {
@@ -208,8 +245,10 @@ const VIEWS = {
   netflow: {
     title: 'Where bikes pile up — and vanish',
     html: `<p>Net flow = arrivals − departures over the full record. Commuters ride
-      <b>into</b> Kendall each morning and take the T home: <b>Ames St at Main St</b>
-      accumulated a +20,451 bike surplus while <b>MIT Stata</b> ran a −9,217 deficit —
+      <b>into</b> Kendall each morning and take the T home:
+      <span class="stlink" data-st="ames st at main st">Ames St at Main St</span>
+      accumulated a +20,451 bike surplus while
+      <span class="stlink" data-st="mit stata center">MIT Stata</span> ran a −9,217 deficit —
       240 meters apart.</p>
       <p>That imbalance is what the rewards program (and its gamers) feed on, and
       what rebalancing crews chase daily. ~58 bikes/month also degrade into a
@@ -223,6 +262,8 @@ const VIEWS = {
 };
 
 let map, DATA = {}, currentView = 'arbitrage', lanesOn = false;
+const LANE_LAYER_IDS = [];
+let activeYears = null;   // Set of first-trip years shown in station-age view
 
 function arcPoints(a, b, n = 24, bend = 0.18) {
   const pts = [];
@@ -265,6 +306,7 @@ function stationGeojson() {
         n: s.n, cap: s.cap || 0, trips: s.trips || 0, birth: s.birth || 0,
         inc: s.inc || 0, tier: s.tier || '', ebike: s.ebike ?? -1,
         net: s.net ?? 0, first: s.first || '',
+        fy: s.first ? Math.max(2018, +s.first.slice(0, 4)) : 0,
       },
     })),
   };
@@ -287,11 +329,38 @@ function initLayers() {
   if (DATA.lanes) map.addSource('lanes', { type: 'geojson', data: DATA.lanes });
 
   if (DATA.lanes) {
-    map.addLayer({
-      id: 'lanes', type: 'line', source: 'lanes',
-      layout: { visibility: 'none' },
-      paint: { 'line-color': '#22c55e', 'line-width': 1.4, 'line-opacity': 0.55 },
-    });
+    // one layer per facility class so dash patterns can differ
+    const laneStyles = {
+      separated: { color: '#22c55e', width: 2.4, opacity: 0.85 },
+      buffered:  { color: '#2dd4bf', width: 1.9, opacity: 0.8 },
+      lane:      { color: '#86efac', width: 1.3, opacity: 0.65 },
+      path:      { color: '#38bdf8', width: 1.7, opacity: 0.75, dash: [2.2, 1.8] },
+      shared:    { color: '#a3a3a3', width: 1.1, opacity: 0.5, dash: [0.4, 1.8] },
+    };
+    const LANE_LABELS = { separated: 'Separated / protected lane', buffered: 'Buffered lane',
+                          lane: 'Conventional bike lane', path: 'Shared-use path',
+                          shared: 'Sharrows / shared lane' };
+    LANE_LAYER_IDS.length = 0;
+    for (const [t, s] of Object.entries(laneStyles)) {
+      const id = `lanes-${t}`;
+      LANE_LAYER_IDS.push(id);
+      map.addLayer({
+        id, type: 'line', source: 'lanes',
+        filter: ['==', ['get', 't'], t],
+        layout: { visibility: 'none' },
+        paint: {
+          'line-color': s.color, 'line-width': s.width, 'line-opacity': s.opacity,
+          ...(s.dash ? { 'line-dasharray': s.dash } : {}),
+        },
+      });
+      map.on('click', id, e => {
+        const p = e.features[0].properties;
+        new maplibregl.Popup().setLngLat(e.lngLat)
+          .setHTML(`<div class="pp"><b>${LANE_LABELS[p.t] || p.t}</b>
+            <div class="m">${p.c ? p.c[0].toUpperCase() + p.c.slice(1) : ''} inventory</div></div>`)
+          .addTo(map);
+      });
+    }
   }
 
   if (DATA.gaps) {
@@ -361,6 +430,14 @@ function initLayers() {
   });
 
   const views = {
+    stationage: {
+      'circle-radius': 4.5,
+      'circle-color': ['case', ['==', ['get', 'fy'], 0], '#334155',
+        ['interpolate', ['linear'], ['get', 'fy'],
+          2018, '#64748b', 2019, '#60a5fa', 2020, '#38bdf8', 2021, '#2dd4bf',
+          2022, '#4ade80', 2023, '#facc15', 2024, '#f59e0b', 2025, '#f97316', 2026, '#ef4444']],
+      'circle-opacity': 0.9,
+    },
     traffic: {
       'circle-radius': ['interpolate', ['linear'], ['sqrt', ['+', ['get', 'trips'], 1]], 0, 1.5, 200, 4, 420, 13],
       'circle-color': '#38bdf8', 'circle-opacity': 0.75,
@@ -426,7 +503,7 @@ function setView(view) {
   currentView = view;
   ['arbitrage-glow', 'arbitrage'].forEach(id =>
     map.setLayoutProperty(id, 'visibility', view === 'arbitrage' ? 'visible' : 'none'));
-  ['traffic', 'freshness', 'equity', 'netflow'].forEach(v =>
+  ['stationage', 'traffic', 'freshness', 'equity', 'netflow'].forEach(v =>
     map.setLayoutProperty(`st-${v}`, 'visibility', v === view ? 'visible' : 'none'));
   if (DATA.gaps) map.setLayoutProperty('gaps', 'visibility', view === 'gaps' ? 'visible' : 'none');
   if (DATA.proposed) map.setLayoutProperty('proposed', 'visibility', view === 'proposed' ? 'visible' : 'none');
@@ -436,11 +513,54 @@ function setView(view) {
   renderStory();
 }
 
+const YEAR_COLORS = { 2018: '#64748b', 2019: '#60a5fa', 2020: '#38bdf8', 2021: '#2dd4bf',
+                      2022: '#4ade80', 2023: '#facc15', 2024: '#f59e0b', 2025: '#f97316', 2026: '#ef4444' };
+
+function applyYearFilter() {
+  if (!map.getLayer('st-stationage')) return;
+  if (!activeYears) { map.setFilter('st-stationage', null); return; }
+  map.setFilter('st-stationage', ['in', ['get', 'fy'], ['literal', [...activeYears]]]);
+}
+
 function renderStory() {
   const v = VIEWS[currentView];
   let html = `<h2>${v.title}</h2>${v.html}`;
-  html += `<div class="legend">` + v.legend.map(([kind, color, label]) =>
-    `<div class="row"><span class="${kind}" style="background:${color}"></span>${label}</div>`).join('') + `</div>`;
+  if (v.legend.length) {
+    html += `<div class="legend">` + v.legend.map(([kind, color, label]) =>
+      `<div class="row"><span class="${kind}" style="background:${color}"></span>${label}</div>`).join('') + `</div>`;
+  }
+
+  if (currentView === 'stationage') {
+    const counts = {};
+    DATA.stations.forEach(s => {
+      const y = s.first ? Math.max(2018, +s.first.slice(0, 4)) : 0;
+      counts[y] = (counts[y] || 0) + 1;
+    });
+    const years = Object.keys(YEAR_COLORS).map(Number);
+    if (!activeYears) activeYears = new Set([...years, 0]);
+    html += `<div class="yearchips">` + years.map(y =>
+      `<button class="ychip ${activeYears.has(y) ? 'on' : ''}" data-y="${y}"
+        style="${activeYears.has(y) ? 'color:' + YEAR_COLORS[y] : ''}">${y === 2018 ? '≤2018' : y}</button>`).join('') +
+      `<button class="ychip ${activeYears.has(0) ? 'on' : ''}" data-y="0">?</button></div>`;
+    const maxC = Math.max(...years.map(y => counts[y] || 0), 1);
+    html += `<div class="legend"><div style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;
+      text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Stations added per year (of today's ${DATA.stations.length})</div>
+      <div class="bars">` + years.map(y =>
+      `<div class="brow"><span class="blab">${y === 2018 ? '≤2018' : y}</span>
+        <span class="btrack"><span class="bfill" style="width:${(counts[y] || 0) / maxC * 100}%;background:${YEAR_COLORS[y]}"></span></span>
+        <span class="bval">${counts[y] || 0}</span></div>`).join('') + `</div></div>`;
+  }
+
+  if (lanesOn) {
+    html += `<div class="legend"><div style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;
+      text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Bike facilities · Boston + Cambridge + Somerville + Brookline</div>
+      <div class="row"><span class="line" style="background:#22c55e;height:4px"></span>Separated / protected</div>
+      <div class="row"><span class="line" style="background:#2dd4bf;height:3px"></span>Buffered lane</div>
+      <div class="row"><span class="line" style="background:#86efac;height:2px"></span>Conventional lane</div>
+      <div class="row"><span class="line" style="background:repeating-linear-gradient(90deg,#38bdf8 0 5px,transparent 5px 9px);height:3px"></span>Shared-use path</div>
+      <div class="row"><span class="line" style="background:repeating-linear-gradient(90deg,#a3a3a3 0 2px,transparent 2px 6px);height:2px"></span>Sharrows / shared</div>
+    </div>`;
+  }
 
   if (currentView === 'arbitrage') {
     const top = [...DATA.arbitrage].sort((a, b) => b.trips - a.trips).slice(0, 5);
@@ -468,6 +588,28 @@ function renderStory() {
   el.querySelectorAll('.item[data-fly]').forEach(item => item.addEventListener('click', () => {
     const [lng, lat] = item.dataset.fly.split(',').map(Number);
     map.flyTo({ center: [lng, lat], zoom: 14.5, duration: 900 });
+  }));
+  // clickable station mentions: fly to + popup
+  el.querySelectorAll('.stlink').forEach(sp => sp.addEventListener('click', () => {
+    const q = sp.dataset.st;
+    const st = DATA.stations.find(s => s.n.toLowerCase().includes(q)) ||
+               DATA.stations.find(s => q.includes(s.n.toLowerCase()));
+    if (!st) return;
+    map.flyTo({ center: [st.lng, st.lat], zoom: 15, duration: 900 });
+    const bits = [st.trips ? `${st.trips.toLocaleString()} trips` : '',
+                  st.first ? `first trip ${st.first}` : '',
+                  st.birth ? `avg bike birth ${st.birth}` : '',
+                  st.net != null ? `net flow ${st.net > 0 ? '+' : ''}${st.net.toLocaleString()}` : '']
+      .filter(Boolean).join(' · ');
+    new maplibregl.Popup().setLngLat([st.lng, st.lat])
+      .setHTML(`<div class="pp"><b>${st.n}</b><div class="m">${bits}</div></div>`).addTo(map);
+  }));
+  // station-age year filter chips
+  el.querySelectorAll('.ychip').forEach(c => c.addEventListener('click', () => {
+    const y = +c.dataset.y;
+    if (activeYears.has(y)) activeYears.delete(y); else activeYears.add(y);
+    applyYearFilter();
+    renderStory();
   }));
 }
 
@@ -515,7 +657,8 @@ async function init() {
       if (!DATA.lanes) return;
       lanesOn = !lanesOn;
       chip.classList.toggle('active', lanesOn);
-      map.setLayoutProperty('lanes', 'visibility', lanesOn ? 'visible' : 'none');
+      LANE_LAYER_IDS.forEach(id => map.setLayoutProperty(id, 'visibility', lanesOn ? 'visible' : 'none'));
+      renderStory();
     } else setView(v);
   }));
 }
