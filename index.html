@@ -537,7 +537,7 @@
 
   <div class="status-bar">
     <span id="status-text">Loading live station data…</span>
-    <span id="data-status">GBFS · OSRM · MBTA</span>
+    <span><a href="atlas/" style="color:#38bdf8;text-decoration:none">🗺 Insights Atlas</a> · <span id="data-status">GBFS · OSRM · MBTA</span></span>
   </div>
 </div>
 
@@ -1145,7 +1145,17 @@ function computeRoutes(origin, dest, modes, prefs, departDate) {
     return true;
   });
   unique.sort((a, b) => a.totalTime - b.totalTime);
-  return unique.slice(0, 8);
+  let top = unique.slice(0, 10);
+  // diversity: always surface a competitive mixed bike+T option if one exists
+  // (e.g. Orange to Jackson Sq then bike) even when pure modes fill the top
+  if (!top.some(r => r.type === 'mixed')) {
+    const best = unique[0]?.totalTime || 0;
+    const m = unique.find(r => r.type === 'mixed' && r.totalTime <= best * 1.4);
+    if (m) {
+      top = [...top.slice(0, 9), m].sort((a, b) => a.totalTime - b.totalTime);
+    }
+  }
+  return top;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

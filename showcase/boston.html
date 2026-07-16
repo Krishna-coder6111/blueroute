@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boston Bikeshare Intelligence — City of Boston</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+<style>
+:root{
+  --bg:#080e17; --panel:#0d1520; --line:#1c2d42; --text:#e2e8f0; --muted:#8b9cb8;
+  --blue:#38bdf8; --purple:#a78bfa; --indigo:#60a5fa; --green:#4ade80; --red:#f87171; --amber:#f59e0b;
+}
+.reveal-viewport{ background:var(--bg) !important; }
+.reveal{ font-family:"DM Sans",-apple-system,"Segoe UI",sans-serif; font-size:30px; color:var(--text); }
+.reveal .slides section{ text-align:left; }
+.reveal .slides section.center-slide{ text-align:center; }
+.reveal h1,.reveal h2,.reveal h3{ font-family:"DM Sans",sans-serif; font-weight:700;
+  letter-spacing:-0.02em; text-transform:none; color:var(--text); line-height:1.12; }
+.reveal h1{ font-size:2.2em; }
+.reveal h2{ font-size:1.3em; margin-bottom:.55em; }
+.reveal .grad{ background:linear-gradient(92deg,#38bdf8 0%,#a78bfa 55%,#60a5fa 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent; }
+.kicker{ font-family:"JetBrains Mono",monospace; font-size:.5em; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--blue); margin:0 0 1.4em 0; }
+.muted{ color:var(--muted); }
+.mono{ font-family:"JetBrains Mono",monospace; }
+.c-blue{ color:var(--blue); } .c-purple{ color:var(--purple); } .c-green{ color:var(--green); }
+.c-red{ color:var(--red); } .c-amber{ color:var(--amber); }
+.big{ font-size:2.3em; font-weight:700; line-height:1.05; }
+.reveal ul{ margin-left:.9em; font-size:.82em; }
+.reveal li{ margin:.5em 0; line-height:1.38; }
+.reveal li::marker{ color:var(--blue); }
+.panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:.7em .95em; }
+.stat-row{ display:flex; gap:.8em; margin:.9em 0; }
+.stat{ flex:1; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:.65em .8em; }
+.stat .n{ font-size:1.6em; font-weight:700; line-height:1.1; }
+.stat .l{ font-size:.52em; color:var(--muted); margin-top:.3em; line-height:1.35; }
+.reveal img.chart{ border:1px solid var(--line); border-radius:12px; background:var(--panel);
+  max-width:100%; max-height:560px; margin:0; }
+.cols{ display:flex; gap:1.1em; align-items:center; }
+.cols>div{ flex:1; min-width:0; }
+.foot{ font-size:.48em; color:var(--muted); margin-top:1.1em; line-height:1.4; }
+.tag{ display:inline-block; font-family:"JetBrains Mono",monospace; font-size:.48em;
+  padding:.3em .8em; border:1px solid var(--line); border-radius:999px; color:var(--muted); margin:0 .35em .35em 0; }
+.reveal a{ color:var(--blue); }
+a.demo-link{ display:block; background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:.7em 1em; margin:.5em 0; text-decoration:none; font-size:.85em; }
+a.demo-link:hover{ border-color:var(--blue); }
+a.demo-link .t{ font-weight:700; color:var(--text); }
+a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
+.reveal .slide-number{ background:transparent; color:var(--muted); font-family:"JetBrains Mono",monospace; }
+.reveal .progress{ color:var(--blue); }
+.reveal .controls{ color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- 1 · Title -->
+<section class="center-slide">
+  <p class="kicker">City of Boston · Transportation &amp; Equity</p>
+  <h1 class="grad">Boston Bikeshare Intelligence</h1>
+  <p style="font-size:.9em; margin-top:.6em;">Who bikeshare serves, who it connects,<br>and where the next docks should go</p>
+  <p class="muted" style="font-size:.62em; margin-top:2.2em;">Krishna Singh · Northeastern University</p>
+  <p class="mono muted" style="font-size:.45em;">24M+ trips 2018 – Jun 2026 · ACS census · NOAA weather · MBTA</p>
+</section>
+
+<!-- 2 · The data -->
+<section>
+  <h2>A system that <span class="grad">keeps setting records</span></h2>
+  <img class="chart" src="assets/01_monthly_ridership.png" alt="Monthly ridership line chart">
+  <p class="foot">24M+ Bluebikes trips (Sep 2018 – Jun 2026) joined to census tracts, weather, and MBTA service data. Through COVID and back: peak month 601K trips (Sep 2022), with 2024–25 summers close behind.</p>
+</section>
+
+<!-- 3 · Access by income -->
+<section>
+  <h2>Station access <span class="grad">favors lower-income tracts</span> — by design or not</h2>
+  <div class="stat-row">
+    <div class="stat"><div class="n c-green">49.3%</div><div class="l">of Very Low income tracts have a station (income-tier binning)</div></div>
+    <div class="stat"><div class="n c-red">23.2%</div><div class="l">of High income tracts have a station — half the coverage</div></div>
+  </div>
+  <img class="chart" src="assets/03_equity_quintiles.png" alt="Percent served and station density by income quintile" style="max-height:390px;">
+  <p class="foot">Quintile view of the same pattern: 41.5% of Q1 tracts served vs 19.9% of Q5, and 5.4 vs 2.2 stations/km². Stations concentrate in lower-income, more diverse tracts.</p>
+</section>
+
+<!-- 4 · E-bike equalizer -->
+<section>
+  <h2>E-bikes are a <span class="grad">commuting equalizer</span></h2>
+  <div class="stat-row">
+    <div class="stat"><div class="n c-green">net +</div><div class="l">e-bikes flow net-positive <b>into low-income tracts</b></div></div>
+    <div class="stat"><div class="n c-blue">+2.6pp</div><div class="l">e-bike trips cross income boundaries <b>upward</b> more often than classic-bike trips</div></div>
+    <div class="stat"><div class="n c-purple">r = −0.17</div><div class="l">e-bike share of trips rises as tract income falls</div></div>
+  </div>
+  <ul>
+    <li>Members and casual riders choose e-bikes at nearly the same rate (10.8% vs 10.2%) — uptake is broad, not a premium niche.</li>
+    <li>Policy lever: e-bike availability in low-income neighborhoods does double duty — access <b>and</b> connection.</li>
+  </ul>
+</section>
+
+<!-- 5 · Mixing headline -->
+<section>
+  <h2>Do riders mix across lines? <span class="grad">Income yes, race less</span></h2>
+  <ul>
+    <li>Measured segregation of station-to-station flows (Moro segregation index on census block groups), then stress-tested with permutation tests under 8 controls.</li>
+    <li><b class="c-blue">Income homophily (SI 0.758) is geography:</b> it loses significance once population density is controlled (p 0.41 → 1.0). People ride where people live.</li>
+    <li><b class="c-purple">Race homophily (SI 0.440) is robust:</b> it survives every control — education, age, income, density (p = 0.0) — except race itself.</li>
+    <li>Translation for policy: income mixing needs no fix; race-line mixing is the real gap infrastructure could address.</li>
+  </ul>
+</section>
+
+<!-- 6 · Decline is expansion -->
+<section>
+  <h2>The "segregation decline" is <span class="grad">expansion, not behavior</span></h2>
+  <img class="chart" src="assets/04_mixing_panel.png" alt="Full vs balanced panel income SI by year">
+  <p class="foot">Hold the station network fixed (243-station balanced panel) and income SI stays flat ≈ 0.78 while the full system drifts down to ≈ 0.74 — new stations, not changed behavior, drive the decline. Same pattern for race.</p>
+</section>
+
+<!-- 7 · E-bike launch ITS -->
+<section>
+  <h2>The Dec 2023 e-bike launch <span class="grad">moved the race-mixing trend</span></h2>
+  <div class="stat-row">
+    <div class="stat"><div class="n c-purple">p = 2.6×10⁻⁷</div><div class="l">interrupted time-series: change in the race-SI trend after the December 2023 e-bike expansion</div></div>
+    <div class="stat"><div class="n c-blue">null</div><div class="l">the same design shows no significant income-SI change — consistent with income homophily being geographic</div></div>
+  </div>
+  <ul>
+    <li>This is the project's most defensible causal claim — a citywide natural experiment.</li>
+    <li>Implication: mode innovations can shift <b>who connects with whom</b>, not just ridership counts.</li>
+  </ul>
+</section>
+
+<!-- 8 · Complements to the T -->
+<section>
+  <h2>Bikes <span class="grad">complement</span> the T — they don't replace it</h2>
+  <div class="cols">
+    <div><img class="chart" src="assets/08_mbta_effect.png" alt="MBTA disruption effect naive vs weather-controlled"></div>
+    <div>
+      <ul style="font-size:.95em;">
+        <li>On major MBTA disruption days, bike ridership <b>drops</b> slightly: −2.5% naive, −2.2% after weather controls.</li>
+        <li>No substitution effect in either direction — riders treat bike + T as one network.</li>
+        <li>Weather is what actually moves demand: temperature r = +0.66; adding weather lifts model R² from 0.80 to 0.90.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 9 · Dock expansion -->
+<section>
+  <h2>Where the next docks <span class="grad">should go</span></h2>
+  <div class="cols">
+    <div class="panel">
+      <p style="font-size:.7em; margin:0 0 .3em 0;"><b class="c-green">Expand</b></p>
+      <ul style="font-size:.62em; margin-left:1.1em;">
+        <li><b>Ames St at Main St</b> — 19 docks vs ~120K trips</li>
+        <li>MIT Vassar St</li>
+        <li>Kenmore Square</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <p style="font-size:.7em; margin:0 0 .3em 0;"><b class="c-red">Right-size down</b></p>
+      <ul style="font-size:.62em; margin-left:1.1em;">
+        <li>Mt. Hope St</li>
+        <li>Newton Highlands</li>
+        <li>Centre St, West Roxbury</li>
+      </ul>
+    </div>
+  </div>
+  <ul>
+    <li>Next iteration: formal location–allocation (p-median coverage optimization) with an equity term, so expansion closes the 49% / 23% access gap deliberately.</li>
+    <li>Caveat: candidate list built on an older station snapshot — verify against live GBFS first.</li>
+  </ul>
+</section>
+
+<!-- 10 · Bike lanes -->
+<section>
+  <h2>Bike-lane corridors from <span class="grad">revealed demand</span></h2>
+  <ul>
+    <li>Every trip is a vote for a corridor: snap top origin–destination flows to real street geometry (OSRM routing).</li>
+    <li>Overlay the city's existing bike-lane shapefile (Boston open data).</li>
+    <li>Rank corridors by <b>bike volume without a lane</b> — the highest-leverage gaps first.</li>
+    <li>Status: method scoped, v1 in progress — a ready-made collaboration with BTD planning.</li>
+  </ul>
+</section>
+
+<!-- 11 · Live demo -->
+<section>
+  <h2><span class="grad">Live demo</span> — see it working today</h2>
+  <a class="demo-link" href="../" target="_blank">
+    <div class="t">BlueRoute — live multimodal router</div>
+    <div class="d">All ~605 stations with live availability (GBFS, 60 s refresh) · real street routing · full MBTA rail graph with live alerts · dock-availability prediction at arrival time</div>
+  </a>
+  <a class="demo-link" href="../atlas/" target="_blank">
+    <div class="t">Station Atlas</div>
+    <div class="d">Interactive maps: equity coverage, flows, and station communities</div>
+  </a>
+</section>
+
+<!-- 12 · Next steps -->
+<section>
+  <h2>Next steps <span class="grad">with the City</span></h2>
+  <ul>
+    <li><b>Equity-weighted expansion</b>: co-design the location–allocation run with BTD priorities (coverage gap 49.3% vs 23.2%).</li>
+    <li><b>Corridor shortlist</b>: deliver the ranked bike-lane gap analysis from OD desire lines.</li>
+    <li><b>Annual mixing report</b>: track income/race SI on the balanced panel as a standing equity metric.</li>
+    <li><b>E-bike siting pilot</b>: concentrate e-bike capacity in low-income tracts and measure the connection effect against the Dec-2023 baseline.</li>
+  </ul>
+  <p class="muted" style="font-size:.6em; margin-top:1.4em;">Krishna Singh · Northeastern University · singh.krish@northeastern.edu</p>
+</section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({
+    width: 1280, height: 720, margin: 0.05,
+    hash: true, slideNumber: "c/t",
+    transition: "fade", backgroundTransition: "fade",
+    controlsTutorial: false
+  });
+</script>
+</body>
+</html>

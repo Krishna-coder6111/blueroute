@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boston Bikeshare Intelligence — Showcase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080e17; --panel:#0d1520; --line:#1c2d42; --text:#e2e8f0; --muted:#8b9cb8;
+  --blue:#38bdf8; --purple:#a78bfa; --indigo:#60a5fa; --green:#4ade80; --amber:#f59e0b;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{
+  background:var(--bg); color:var(--text);
+  font-family:"DM Sans",-apple-system,"Segoe UI",sans-serif;
+  min-height:100vh; display:flex; align-items:center; justify-content:center; padding:48px 24px;
+}
+.wrap{ max-width:960px; width:100%; }
+.kicker{
+  font-family:"JetBrains Mono",monospace; font-size:13px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--blue); margin-bottom:18px;
+}
+h1{
+  font-size:44px; font-weight:700; letter-spacing:-0.02em; line-height:1.1; margin-bottom:10px;
+  background:linear-gradient(92deg,#38bdf8 0%,#a78bfa 55%,#60a5fa 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.sub{ color:var(--muted); font-size:17px; margin-bottom:40px; max-width:640px; line-height:1.5; }
+.cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px; }
+a.card{
+  display:block; background:var(--panel); border:1px solid var(--line); border-radius:16px;
+  padding:24px 22px; text-decoration:none; color:var(--text);
+  transition:border-color .15s, transform .15s;
+}
+a.card:hover{ border-color:var(--blue); transform:translateY(-3px); }
+.card .who{
+  font-family:"JetBrains Mono",monospace; font-size:11.5px; letter-spacing:.16em;
+  text-transform:uppercase; margin-bottom:12px;
+}
+.card:nth-child(1) .who{ color:var(--blue); }
+.card:nth-child(2) .who{ color:var(--green); }
+.card:nth-child(3) .who{ color:var(--purple); }
+.card h2{ font-size:21px; font-weight:700; letter-spacing:-0.01em; margin-bottom:8px; }
+.card p{ color:var(--muted); font-size:14px; line-height:1.5; }
+.card .go{ margin-top:16px; font-size:13.5px; color:var(--blue); font-weight:500; }
+.foot{
+  margin-top:44px; color:var(--muted); font-size:13px; line-height:1.6;
+  border-top:1px solid var(--line); padding-top:18px;
+  display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+}
+.foot .mono{ font-family:"JetBrains Mono",monospace; font-size:12px; }
+.foot a{ color:var(--blue); text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="kicker">Showcase · three decks, one dataset</p>
+  <h1>Boston Bikeshare Intelligence</h1>
+  <p class="sub">24M+ Bluebikes trips (2018 – Jun 2026) fused with census, weather, and MBTA data —
+  presented three ways for three audiences. Krishna Singh, Northeastern University.</p>
+
+  <div class="cards">
+    <a class="card" href="bluebikes.html">
+      <div class="who">Bluebikes · Lyft</div>
+      <h2>Operations &amp; Fleet</h2>
+      <p>Predictive maintenance from rider behavior, points-farming detection, dock rebalancing, and a live dock predictor.</p>
+      <div class="go">Open deck →</div>
+    </a>
+    <a class="card" href="boston.html">
+      <div class="who">City of Boston</div>
+      <h2>Equity &amp; Planning</h2>
+      <p>Station access by income, e-bikes as a commuting equalizer, mobility mixing, and where the next docks should go.</p>
+      <div class="go">Open deck →</div>
+    </a>
+    <a class="card" href="streetlight.html">
+      <div class="who">StreetLight Data</div>
+      <h2>Methods &amp; Inference</h2>
+      <p>Fleet health, land use, and equity flows inferred from anonymized metadata — with circuity correction and causal controls.</p>
+      <div class="go">Open deck →</div>
+    </a>
+  </div>
+
+  <div class="foot">
+    <span>Live demos: <a href="../">BlueRoute router</a> · <a href="../atlas/">Station Atlas</a></span>
+    <span class="mono">reveal.js · matplotlib · honest numbers only</span>
+  </div>
+</div>
+</body>
+</html>

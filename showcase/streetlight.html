@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boston Bikeshare Intelligence — StreetLight Data</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+<style>
+:root{
+  --bg:#080e17; --panel:#0d1520; --line:#1c2d42; --text:#e2e8f0; --muted:#8b9cb8;
+  --blue:#38bdf8; --purple:#a78bfa; --indigo:#60a5fa; --green:#4ade80; --red:#f87171; --amber:#f59e0b;
+}
+.reveal-viewport{ background:var(--bg) !important; }
+.reveal{ font-family:"DM Sans",-apple-system,"Segoe UI",sans-serif; font-size:30px; color:var(--text); }
+.reveal .slides section{ text-align:left; }
+.reveal .slides section.center-slide{ text-align:center; }
+.reveal h1,.reveal h2,.reveal h3{ font-family:"DM Sans",sans-serif; font-weight:700;
+  letter-spacing:-0.02em; text-transform:none; color:var(--text); line-height:1.12; }
+.reveal h1{ font-size:2.2em; }
+.reveal h2{ font-size:1.3em; margin-bottom:.55em; }
+.reveal .grad{ background:linear-gradient(92deg,#38bdf8 0%,#a78bfa 55%,#60a5fa 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent; }
+.kicker{ font-family:"JetBrains Mono",monospace; font-size:.5em; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--blue); margin:0 0 1.4em 0; }
+.muted{ color:var(--muted); }
+.mono{ font-family:"JetBrains Mono",monospace; }
+.c-blue{ color:var(--blue); } .c-purple{ color:var(--purple); } .c-green{ color:var(--green); }
+.c-red{ color:var(--red); } .c-amber{ color:var(--amber); }
+.big{ font-size:2.3em; font-weight:700; line-height:1.05; }
+.reveal ul{ margin-left:.9em; font-size:.82em; }
+.reveal li{ margin:.5em 0; line-height:1.38; }
+.reveal li::marker{ color:var(--blue); }
+.panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:.7em .95em; }
+.stat-row{ display:flex; gap:.8em; margin:.9em 0; }
+.stat{ flex:1; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:.65em .8em; }
+.stat .n{ font-size:1.6em; font-weight:700; line-height:1.1; }
+.stat .l{ font-size:.52em; color:var(--muted); margin-top:.3em; line-height:1.35; }
+.reveal img.chart{ border:1px solid var(--line); border-radius:12px; background:var(--panel);
+  max-width:100%; max-height:560px; margin:0; }
+.cols{ display:flex; gap:1.1em; align-items:center; }
+.cols>div{ flex:1; min-width:0; }
+.foot{ font-size:.48em; color:var(--muted); margin-top:1.1em; line-height:1.4; }
+.tag{ display:inline-block; font-family:"JetBrains Mono",monospace; font-size:.55em;
+  padding:.35em .9em; border:1px solid var(--line); border-radius:999px; color:var(--muted); margin:0 .35em .45em 0; }
+.reveal a{ color:var(--blue); }
+a.demo-link{ display:block; background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:.7em 1em; margin:.5em 0; text-decoration:none; font-size:.85em; }
+a.demo-link:hover{ border-color:var(--blue); }
+a.demo-link .t{ font-weight:700; color:var(--text); }
+a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
+.reveal .slide-number{ background:transparent; color:var(--muted); font-family:"JetBrains Mono",monospace; }
+.reveal .progress{ color:var(--blue); }
+.reveal .controls{ color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- 1 · Title -->
+<section class="center-slide">
+  <p class="kicker">Methods briefing · StreetLight Data</p>
+  <h1 class="grad">Boston Bikeshare Intelligence</h1>
+  <p style="font-size:.9em; margin-top:.6em;">How much mobility insight can you extract<br>from anonymized trip metadata alone?</p>
+  <p class="muted" style="font-size:.62em; margin-top:2.2em;">Krishna Singh · Northeastern University</p>
+  <p class="mono muted" style="font-size:.45em;">24M+ trips 2018 – Jun 2026 · zero GPS traces · zero rider IDs</p>
+</section>
+
+<!-- 2 · The premise -->
+<section>
+  <h2>The premise: <span class="grad">metadata is enough</span></h2>
+  <ul>
+    <li>Input: public trip records only — start/end station, timestamp, bike type, member flag. <b>No GPS traces, no rider IDs.</b></li>
+    <li>Fused with open feeds: GBFS station status, NOAA weather, ACS census, MBTA v3 alerts, OSRM street routing.</li>
+    <li>Output: fleet health, rider rejections, land use, equity flows, fraud, and causal demand effects — everything in this deck.</li>
+  </ul>
+  <div style="margin-top:.9em;">
+    <span class="tag">24M+ trips</span><span class="tag">GBFS</span><span class="tag">NOAA GHCN</span><span class="tag">ACS census</span><span class="tag">MBTA v3</span><span class="tag">OSRM</span>
+  </div>
+</section>
+
+<!-- 3 · Scale -->
+<section>
+  <h2>The signal source: <span class="grad">8 years of trips</span></h2>
+  <img class="chart" src="assets/01_monthly_ridership.png" alt="Monthly ridership line chart">
+  <p class="foot">Sep 2018 – Jun 2026. Strong seasonality, COVID shock, sustained growth — plus messy realities handled in the pipeline: schema break in 2024 (bike IDs dropped), station-ID migration in 2023, negative-duration rows filtered.</p>
+</section>
+
+<!-- 4 · Fleet health -->
+<section>
+  <h2>Inference #1 — <span class="grad">fleet health from behavior</span></h2>
+  <img class="chart" src="assets/05_monthly_failures.png" alt="Monthly degraded bikes and repair cost" style="max-height:430px;">
+  <p class="foot">Rejection signature: 60–120 s trip, then another departure from the same station ≤5 min (41.3% of short trips). A behavioral health score over 6,891 bikes correlates with rejections at r = −0.28 (p &lt; 0.0001) → ~58 degrading bikes/month, ≈ $70K/yr repair exposure — from metadata alone.</p>
+</section>
+
+<!-- 5 · Land use -->
+<section>
+  <h2>Inference #2 — <span class="grad">land use from timestamps</span></h2>
+  <ul>
+    <li>One feature — the <b>AM/PM departure ratio</b> — separates residential from employment zones with no land-use data at all.</li>
+    <li>Residential extreme: TD Garden–West End Park, ratio <b class="c-green">130 : 1</b>.</li>
+    <li>Employment extremes: UMass Boston <b class="c-amber">0.07</b>, MIT Stata <b class="c-amber">0.10</b>, Ames St <b class="c-amber">0.11</b>.</li>
+    <li>Kendall Square emerges as the system's biggest commuter sink; network clustering finds 54 Louvain communities (modularity 0.617).</li>
+  </ul>
+</section>
+
+<!-- 6 · Circuity -->
+<section>
+  <h2>Inference #3 — <span class="grad">de-biasing haversine speeds</span></h2>
+  <img class="chart" src="assets/02_circuity_speeds.png" alt="Haversine vs street-corrected speeds" style="max-height:470px;">
+  <p class="foot">Straight-line speeds systematically understate reality. Measured street circuity = <b>1.19</b> (trip-weighted; median 1.155) by routing the top-60 station pairs through OSRM. Corrected speeds: e-bikes 15.0 km/h vs classic 11.1 (+35%); members 12.9 vs casuals 10.4. Elevation contributes &lt;5% — Boston is flat.</p>
+</section>
+
+<!-- 7 · Equity flows -->
+<section>
+  <h2>Inference #4 — <span class="grad">equity flows from OD matrices</span></h2>
+  <ul>
+    <li>Station-to-station flows mapped to census block groups → Moro segregation index (SI) with density-product weights.</li>
+    <li><b>Permutation testing with 8 controls</b> separates signal from geography: income SI 0.758 loses significance under density controls (p 0.41 → 1.0); race SI 0.440 survives all of them (p = 0.0).</li>
+    <li>Balanced 243-station panel (via a station-ID crosswalk) shows the apparent SI decline is <b>network expansion, not behavior change</b>.</li>
+    <li>Natural experiment: Dec 2023 e-bike launch shifts the race-SI trend (ITS, p = 2.6×10⁻⁷).</li>
+  </ul>
+</section>
+
+<!-- 8 · Panel design -->
+<section>
+  <h2>Method detail: <span class="grad">composition bias is the trap</span></h2>
+  <img class="chart" src="assets/04_mixing_panel.png" alt="Full vs balanced panel income SI">
+  <p class="foot">The full-system trend and the fixed-panel trend tell opposite stories. Any longitudinal mobility metric on a growing network needs a balanced panel — here that required a crosswalk across the 2023 numeric→alphanumeric station-ID migration.</p>
+</section>
+
+<!-- 9 · Causal hygiene -->
+<section>
+  <h2>Method detail: <span class="grad">weather-controlled effects</span></h2>
+  <div class="cols">
+    <div><img class="chart" src="assets/08_mbta_effect.png" alt="MBTA naive vs weather-controlled effect"></div>
+    <div>
+      <ul style="font-size:.95em;">
+        <li>Question: do transit disruptions push riders to bikes?</li>
+        <li>Poisson GLM over 1,516 days: naive −2.5% → weather-controlled −2.2%. Small, negative, stable → bikes and the T are <b>complements</b>.</li>
+        <li>Weather is the real driver: temp r = +0.66; adding weather lifts demand-model R² from 0.80 to 0.90.</li>
+        <li>Effect size is spec-sensitive (continuous measure: −0.41% → −0.26%) — we report both.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 10 · Prediction -->
+<section>
+  <h2>Prediction: <span class="grad">dock-level availability</span></h2>
+  <img class="chart" src="assets/06_neu_dock_r2.png" alt="Per-station dock model R2" style="max-height:470px;">
+  <p class="foot">Per-station hourly models, honestly reported: R² 0.13–0.63, MAE 0.8–2.2 bikes. An earlier aggregate target scored 0.79 — we dropped it because per-station is the decision-relevant unit. Deployed in the live router as arrival-time dock predictions.</p>
+</section>
+
+<!-- 11 · Anomaly detection -->
+<section>
+  <h2>Anomaly detection with <span class="grad">sensitivity sweeps</span></h2>
+  <img class="chart" src="assets/07_suspicious_pairs.png" alt="Top suspicious station pairs" style="max-height:470px;">
+  <p class="foot">Isolation Forest over pair-level features, contamination swept 0.05–0.20 for robustness: 76 suspicious bidirectional pairs. Top pair 41↔9: 11,002 trips averaging 2.3 min / 0.4 km, 98% members — and activity halts in March 2023, a checkable program-change fingerprint.</p>
+</section>
+
+<!-- 12 · Live demo -->
+<section>
+  <h2><span class="grad">Live demo</span> — the stack, running</h2>
+  <a class="demo-link" href="../" target="_blank">
+    <div class="t">BlueRoute — router + dock predictor</div>
+    <div class="d">~605 stations, live GBFS (60 s refresh) · OSRM street routing · full MBTA rail graph with live alerts · hourly net-flow dock profiles (607 stations from 4.75M trips) blended with live counts</div>
+  </a>
+  <a class="demo-link" href="../atlas/" target="_blank">
+    <div class="t">Station Atlas</div>
+    <div class="d">Interactive maps of flows, communities, and equity coverage</div>
+  </a>
+  <p class="foot">A GBFS logger snapshots station status every 10 minutes — unlocking broken-dock detection and supply-vs-preference questions trip data can't answer.</p>
+</section>
+
+<!-- 13 · Next steps -->
+<section>
+  <h2>Why this maps to <span class="grad">StreetLight's problems</span></h2>
+  <ul>
+    <li><b>Portable by construction</b>: every method needs only GBFS-style metadata + open covariates — it transfers to any bikeshare, scooter, or CDR-like OD dataset. NYC replication is scoped next.</li>
+    <li><b>Metadata-only equity metrics</b> (SI + permutation controls + balanced panels) — a product-shaped answer to agencies' equity reporting mandates.</li>
+    <li><b>Fleet health &amp; anomaly scoring</b> as derived data products on top of operator feeds.</li>
+    <li><b>Calibration assets</b>: measured circuity (1.19) and weather-controlled baselines de-bias speed and demand estimates at scale.</li>
+  </ul>
+  <p class="muted" style="font-size:.6em; margin-top:1.4em;">Krishna Singh · Northeastern University · singh.krish@northeastern.edu</p>
+</section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({
+    width: 1280, height: 720, margin: 0.05,
+    hash: true, slideNumber: "c/t",
+    transition: "fade", backgroundTransition: "fade",
+    controlsTutorial: false
+  });
+</script>
+</body>
+</html>
