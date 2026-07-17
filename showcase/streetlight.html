@@ -153,15 +153,10 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
 <!-- 10 · Prediction — honest chronological eval -->
 <section>
   <h2>Prediction, <span class="grad">evaluated the honest way</span></h2>
-  <div class="stat-row">
-    <div class="stat"><div class="n c-green">0.74→0.51</div><div class="l"><b>Forsyth St</b> R² train→test · RMSE 2.94, MAE 2.06 trips/hr · beats seasonal-naive R² 0.42</div></div>
-    <div class="stat"><div class="n c-green">0.71→0.57</div><div class="l"><b>Ruggles</b> R² train→test · MAE 1.93 · naive 0.37</div></div>
-    <div class="stat"><div class="n c-red">0.62→0.04</div><div class="l"><b>NEU North Parking</b> and <b>Wentworth</b> (0.45→0.00) both <b>lose</b> to a naive hour×weekday mean</div></div>
-  </div>
-  <ul>
-    <li>Chronological train→test split against a <b>seasonal-naive baseline</b> — no shuffled-CV leakage, and we report the losses: a regime change in the 2025–26 test window breaks the low-volume stations.</li>
-    <li>The pattern is the finding: <b>high-volume stations generalize, low-volume don't</b>.</li>
-    <li>Residual curvature is significant at all 4 stations — the model over-predicts peaks, a capacity-ceiling effect (full docks clip observable demand).</li>
+  <img class="chart" src="assets/06_neu_eval.png" alt="R² train-to-test dumbbells: Ruggles and Forsyth hold above the naive baseline; NEU North Parking and Wentworth collapse below it" style="max-height:415px;">
+  <ul style="font-size:.72em;">
+    <li>Chronological split vs a <b>seasonal-naive baseline</b> — no shuffled-CV leakage, losses reported. The pattern is the finding: <b>high-volume stations generalize, low-volume don't</b> (a 2025–26 regime change breaks the quiet docks).</li>
+    <li>Residual curvature is significant at all 4 stations — over-predicted peaks, a capacity-ceiling effect (full docks clip observable demand).</li>
   </ul>
   <p class="foot">05b_neu_dock_eval.csv. Two optimistic numbers were retired on the way here: an aggregate R² 0.79 (wrong unit) and in-sample per-station fits (wrong split).</p>
 </section>
@@ -184,16 +179,21 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
 <!-- 12 · Anomaly detection -->
 <section>
   <h2>Anomaly flags need a <span class="grad">behavioral second stage</span></h2>
-  <img class="chart" src="assets/07_lastmile_pairs.png" alt="Top suspicious station pairs" style="max-height:420px;">
+  <img class="chart" src="assets/07_lastmile_pairs.png" alt="Top 10 flagged station pairs by trips, classified as tidal commutes or mixed local hops — zero farming" style="max-height:420px;">
   <p class="foot">Stage 1 (Isolation Forest, contamination swept 0.05–0.20) flagged 56 unique "farming-like" pairs. Stage 2 — tidality (AM/PM directional flow) + flip-session detection (3+ alternating rides within minutes) — reclassified them: <b>15 tidal last-mile commute corridors, 41 mixed local hops, 0 farming</b>. Bonus catch: the top pair's apparent March-2023 stop was a station-ID schema artifact; crosswalked, it's a 20,188-trip BU commute corridor. Anomaly ≠ abuse — the metadata can tell the difference.</p>
 </section>
 
 
-<!-- Atlas showcase -->
-<section>
-  <h2>Deliverable: a <span class="grad">stackable insight atlas</span></h2>
-  <img class="chart" src="assets/atlas_lastmile.png" alt="Atlas: last-mile pair classification" style="max-height:520px;">
-  <p class="foot">Every analysis ships as a toggleable map layer — here, the 56 anomaly pairs colored by behavioral verdict (blue = tidal commute, mauve = mixed). Ten layers stack: crashes, lane gaps, station age, income, net flow, dock fit, proposed sites. <span class="mono">krishna-coder6111.github.io/blueroute/atlas</span></p>
+<!-- Atlas · full-bleed live-demo teaser -->
+<section data-background-image="assets/atlas_lastmile.png" data-background-size="cover" data-background-position="center">
+  <div style="background:rgba(8,14,23,.86); border:1px solid var(--line); border-radius:14px; padding:.85em 1.05em; max-width:58%; margin-left:auto;">
+    <h2 style="font-size:1.02em;">Explore it live — the <span class="grad">Boston Bikeshare Atlas</span></h2>
+    <p class="mono" style="font-size:.5em; color:var(--blue); margin:.1em 0 .7em 0;">krishna-coder6111.github.io/blueroute/atlas/</p>
+    <ul style="font-size:.6em; margin-left:1.1em;">
+      <li>Every analysis in this deck ships as a toggleable map layer — shown: the 56 anomaly pairs as arcs, colored by behavioral verdict (blue = tidal commute, mauve = mixed).</li>
+      <li>Layers stack: station age, income, net flow, dock fit, proposed sites, and typed bike lanes across 4 cities.</li>
+    </ul>
+  </div>
 </section>
 
 <!-- 13 · Live demo -->

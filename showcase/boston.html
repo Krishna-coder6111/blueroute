@@ -47,7 +47,7 @@
   border-radius:6px; padding:.65em .8em; }
 .stat .n{ font-family:"Montserrat",sans-serif; font-size:1.6em; font-weight:700; line-height:1.1; }
 .stat .l{ font-size:.52em; color:var(--muted); margin-top:.3em; line-height:1.35; }
-.reveal img.chart{ border:1px solid var(--line); border-radius:6px; background:var(--panel);
+.reveal img.chart{ border:1px solid var(--line); border-radius:6px; background:#FFFFFF;
   max-width:100%; max-height:560px; margin:0; }
 .cols{ display:flex; gap:1.1em; align-items:center; }
 .cols>div{ flex:1; min-width:0; }
@@ -81,7 +81,7 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
 <!-- 2 · The data -->
 <section>
   <h2>A system that <span class="grad">keeps setting records</span></h2>
-  <img class="chart" src="assets/01_monthly_ridership_light.png" alt="Monthly ridership line chart">
+  <img class="chart" src="assets/01_monthly_ridership_light.png" alt="Monthly ridership: every summer since 2022 beat the pre-COVID record">
   <p class="foot">24M+ Bluebikes trips (Sep 2018 – Jun 2026) joined to census tracts, weather, and MBTA service data. Through COVID and back: peak month 601K trips (Sep 2022), with 2024–25 summers close behind.</p>
 </section>
 
@@ -92,7 +92,7 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
     <div class="stat"><div class="n c-green">49.3%</div><div class="l">of Very Low income tracts have a station (income-tier binning)</div></div>
     <div class="stat"><div class="n c-red">23.2%</div><div class="l">of High income tracts have a station — half the coverage</div></div>
   </div>
-  <img class="chart" src="assets/03_equity_quintiles.png" alt="Percent served and station density by income quintile" style="max-height:390px;">
+  <img class="chart" src="assets/03_equity_quintiles.png" alt="Share of tracts served by income quintile: Q1 42% vs Q5 20%" style="max-height:390px;">
   <p class="foot">Quintile view of the same pattern: 41.5% of Q1 tracts served vs 19.9% of Q5, and 5.4 vs 2.2 stations/km². Stations concentrate in lower-income, more diverse tracts.</p>
 </section>
 
@@ -124,7 +124,7 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
 <!-- 6 · Decline is expansion -->
 <section>
   <h2>The "segregation decline" is <span class="grad">expansion, not behavior</span></h2>
-  <img class="chart" src="assets/04_mixing_panel_light.png" alt="Full vs balanced panel income SI by year">
+  <img class="chart" src="assets/04_mixing_panel_light.png" alt="Income segregation index by year: balanced panel stays flat while the full system drifts down">
   <p class="foot">Hold the station network fixed (243-station balanced panel) and income SI stays flat ≈ 0.78 while the full system drifts down to ≈ 0.74 — new stations, not changed behavior, drive the decline. Same pattern for race.</p>
 </section>
 
@@ -145,7 +145,7 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
 <section>
   <h2>Bikes <span class="grad">complement</span> the T — they don't replace it</h2>
   <div class="cols">
-    <div><img class="chart" src="assets/08_mbta_effect_light.png" alt="MBTA disruption effect naive vs weather-controlled"></div>
+    <div><img class="chart" src="assets/08_mbta_effect_light.png" alt="MBTA disruption effect: naive and weather-controlled bars both near zero"></div>
     <div>
       <ul style="font-size:.95em;">
         <li>On major MBTA disruption days, bike ridership <b>drops</b> slightly: −2.5% naive, −2.2% after weather controls.</li>
@@ -202,11 +202,16 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
 </section>
 
 
-<!-- Atlas showcase -->
-<section>
-  <h2>The <span class="grad">Bikeshare Atlas</span> — crashes, lanes & gaps in one map</h2>
-  <img class="chart" src="assets/atlas_gaps.png" alt="Atlas: crashes + lane gaps + lane network" style="max-height:520px;">
-  <p class="foot">Vision Zero bike crashes (red dots) stacked on the existing lane network (green, Boston + Cambridge + Somerville + Brookline) and the needed-lane corridors (thick red) — the corridor-priority picture on one screen. <span class="mono">krishna-coder6111.github.io/blueroute/atlas</span></p>
+<!-- Atlas · full-bleed live-demo teaser -->
+<section data-background-image="assets/atlas_gaps.png" data-background-size="cover" data-background-position="center">
+  <div style="background:rgba(9,31,47,.84); border:1px solid var(--line); border-radius:6px; padding:.85em 1.05em; max-width:58%; margin-left:auto;">
+    <h2 style="font-size:.88em;">Explore it live — the <span class="grad">Boston Bikeshare Atlas</span></h2>
+    <p class="mono" style="font-size:.5em; color:var(--blue); margin:.1em 0 .7em 0;">krishna-coder6111.github.io/blueroute/atlas/</p>
+    <ul style="font-size:.58em; margin-left:1.1em;">
+      <li>Shown: the <b>safety stack</b> — 3,945 Vision Zero bike crashes (red dots) over today's lane network (green) and the needed-lane corridors (thick red lines: heavy riding, no lane within 130 m).</li>
+      <li>Ten layers stack: crashes, lane gaps, station age, income, net flow, dock fit, proposed sites, and typed bike lanes across Boston, Cambridge, Somerville, and Brookline.</li>
+    </ul>
+  </div>
 </section>
 
 <!-- 12 · Live demo -->
