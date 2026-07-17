@@ -131,10 +131,11 @@
     <button class="chip" data-view="netflow">⚖ Net flow</button>
     <button class="chip" data-view="dockfit">🅿 Dock fit</button>
     <button class="chip" data-view="gaps">🚧 Lane gaps</button>
+    <button class="chip" data-view="crashes">🚑 Crashes</button>
     <button class="chip" data-view="proposed">📍 Proposed</button>
     <button class="chip lanes" data-view="__lanes">🛣 Bike lanes</button>
   </div>
-  <div class="vhint">layers stack — toggle any combination</div>
+  <div class="vhint">layers stack — try 🚑+🚧+🛣 (safety), 🚲+📍 (growth), 🆕+🏘 (equity)</div>
   <div class="story" id="story"></div>
   <div class="foot">
     <a href="../">🚲 Route planner</a>
@@ -283,6 +284,18 @@ const VIEWS = {
       ['swatch', '#28648E', 'volume on/near existing lanes'],
     ],
   },
+  crashes: {
+    title: 'A decade of bike crashes, point by point',
+    html: `<p><b>3,945 bike crashes</b> from Boston's Vision Zero records
+      (2015–2026). <b>67.8% happen on or within 30 m of a bike lane</b> — not
+      because lanes are dangerous, but because that's where the riding is
+      (no exposure adjustment here; the City's 2025 Bike Lane Crash Analysis
+      digs into rates).</p>
+      <p>The useful read is the <b>stack</b>: toggle 🚧 Lane gaps and 🛣 Bike
+      lanes to see crash clusters along heavily-ridden stretches that still
+      have no protection — the strongest case for the needed-lane corridors.</p>`,
+    legend: [['swatch', FR, 'bike crash (2015–2026)']],
+  },
   proposed: {
     title: 'Where the next 25 stations should go',
     html: `<p>Maximal-covering optimization (Church & ReVelle 1974): 25 sites that
@@ -311,6 +324,7 @@ const VIEW_LAYERS = {
   netflow: ['st-netflow'],
   dockfit: ['dockfit'],
   gaps: ['gaps-ctx', 'gaps-lines'],
+  crashes: ['crashes'],
   proposed: ['proposed'],
 };
 
@@ -329,7 +343,7 @@ function arcPoints(a, b, n = 24, bend = 0.18) {
   }
   return pts;
 }
-const BUILD = '20260716b';   // bump per deploy — busts stale cached data files
+const BUILD = '20260717a';   // bump per deploy — busts stale cached data files
 const fyOf = s => { const y = parseInt(s.first); return Number.isFinite(y) ? Math.max(2018, y) : 0; };
 const binOf = y => AGE_BINS.find(b => b.test(y)) || AGE_BINS[3];
 
@@ -349,6 +363,7 @@ async function loadData() {
   DATA.gaps = await opt('lane_gaps.geojson');
   DATA.proposed = await opt('proposed.json');
   DATA.dockfit = await opt('dock_resize.json');
+  DATA.crashes = await opt('crashes.json');
 }
 
 function stationGeojson() {
@@ -579,6 +594,36 @@ function initLayers() {
     bindPointer('dockfit');
   }
 
+  // bike crashes (Vision Zero)
+  if (DATA.crashes) {
+    map.addSource('crashes', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: DATA.crashes.map(c => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [c[1], c[0]] },
+          properties: { y: c[2] },
+        })),
+      },
+    });
+    map.addLayer({
+      id: 'crashes', type: 'circle', source: 'crashes',
+      layout: { visibility: 'none' },
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 1.6, 14, 3.4],
+        'circle-color': FR,
+        'circle-opacity': 0.4,
+      },
+    });
+    map.on('click', 'crashes', e => {
+      const p = e.features[0].properties;
+      new maplibregl.Popup().setLngLat(e.lngLat)
+        .setHTML(`<div class="pp"><b>Bike crash</b><div class="m">reported <i>${p.y}</i> · Vision Zero records</div></div>`).addTo(map);
+    });
+    bindPointer('crashes');
+  }
+
   // proposed (top)
   if (DATA.proposed) {
     map.addSource('proposed', {
@@ -615,7 +660,7 @@ function initLayers() {
 // ─── View toggling (multi-layer) ────────────────────────────────────────────
 function hasView(v) {
   return !((v === 'gaps' && !DATA.gaps) || (v === 'proposed' && !DATA.proposed) ||
-           (v === 'dockfit' && !DATA.dockfit));
+           (v === 'dockfit' && !DATA.dockfit) || (v === 'crashes' && !DATA.crashes));
 }
 
 function syncLayers() {
@@ -784,6 +829,7 @@ async function init() {
     container: 'map',
     style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
     center: [-71.08, 42.355], zoom: 12.2, attributionControl: { compact: true },
+    preserveDrawingBuffer: true,   // enables canvas export for deck screenshots
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 

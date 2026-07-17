@@ -184,8 +184,16 @@ a.demo-link .d{ font-size:.62em; color:var(--muted); margin-top:.15em; }
 <!-- 12 · Anomaly detection -->
 <section>
   <h2>Anomaly flags need a <span class="grad">behavioral second stage</span></h2>
-  <img class="chart" src="assets/07_suspicious_pairs.png" alt="Top suspicious station pairs" style="max-height:420px;">
+  <img class="chart" src="assets/07_lastmile_pairs.png" alt="Top suspicious station pairs" style="max-height:420px;">
   <p class="foot">Stage 1 (Isolation Forest, contamination swept 0.05–0.20) flagged 56 unique "farming-like" pairs. Stage 2 — tidality (AM/PM directional flow) + flip-session detection (3+ alternating rides within minutes) — reclassified them: <b>15 tidal last-mile commute corridors, 41 mixed local hops, 0 farming</b>. Bonus catch: the top pair's apparent March-2023 stop was a station-ID schema artifact; crosswalked, it's a 20,188-trip BU commute corridor. Anomaly ≠ abuse — the metadata can tell the difference.</p>
+</section>
+
+
+<!-- Atlas showcase -->
+<section>
+  <h2>Deliverable: a <span class="grad">stackable insight atlas</span></h2>
+  <img class="chart" src="assets/atlas_lastmile.png" alt="Atlas: last-mile pair classification" style="max-height:520px;">
+  <p class="foot">Every analysis ships as a toggleable map layer — here, the 56 anomaly pairs colored by behavioral verdict (blue = tidal commute, mauve = mixed). Ten layers stack: crashes, lane gaps, station age, income, net flow, dock fit, proposed sites. <span class="mono">krishna-coder6111.github.io/blueroute/atlas</span></p>
 </section>
 
 <!-- 13 · Live demo -->
