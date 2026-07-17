@@ -387,7 +387,8 @@ function arbitrageGeojson() {
     features: DATA.arbitrage.map((p, i) => ({
       type: 'Feature',
       geometry: { type: 'LineString', coordinates: arcPoints([p.aLng, p.aLat], [p.bLng, p.bLat]) },
-      properties: { i, aN: p.aN, bN: p.bN, trips: p.trips, mins: p.mins, km: p.km, member: p.member, days: p.days },
+      properties: { i, aN: p.aN, bN: p.bN, trips: p.trips, mins: p.mins, km: p.km, member: p.member, days: p.days,
+                    cls: p.cls, tidal: p.tidal, farm: p.farm, first: p.first, last: p.last },
     })),
   };
 }
