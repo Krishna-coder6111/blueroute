@@ -123,7 +123,7 @@
   </div>
   <div class="statrow" id="statrow"></div>
   <div class="views" id="views">
-    <button class="chip active" data-view="arbitrage">🎯 Arbitrage</button>
+    <button class="chip active" data-view="arbitrage">🚏 Last-mile</button>
     <button class="chip" data-view="traffic">🚲 Traffic</button>
     <button class="chip" data-view="stationage">🆕 Station age</button>
     <button class="chip" data-view="freshness">✨ Bike age</button>
@@ -329,19 +329,20 @@ function arcPoints(a, b, n = 24, bend = 0.18) {
   }
   return pts;
 }
-const fyOf = s => s.first ? Math.max(2018, +s.first.slice(0, 4)) : 0;
+const BUILD = '20260716b';   // bump per deploy — busts stale cached data files
+const fyOf = s => { const y = parseInt(s.first); return Number.isFinite(y) ? Math.max(2018, y) : 0; };
 const binOf = y => AGE_BINS.find(b => b.test(y)) || AGE_BINS[3];
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 async function loadData() {
   const [stations, arbitrage] = await Promise.all([
-    fetch('data/stations.json').then(r => r.json()),
-    fetch('data/arbitrage.json').then(r => r.json()),
+    fetch(`data/stations.json?v=${BUILD}`).then(r => r.json()),
+    fetch(`data/arbitrage.json?v=${BUILD}`).then(r => r.json()),
   ]);
   DATA.stations = stations;
   DATA.arbitrage = arbitrage;
   const opt = async (name) => {
-    try { const r = await fetch(`data/${name}`); return r.ok ? await r.json() : null; }
+    try { const r = await fetch(`data/${name}?v=${BUILD}`); return r.ok ? await r.json() : null; }
     catch (e) { return null; }
   };
   DATA.lanes = await opt('lanes_all.geojson') || await opt('lanes.geojson');
@@ -474,7 +475,7 @@ function initLayers() {
       'line-color': ['match', ['coalesce', ['get', 'cls'], ''],
         'farming-like', FR, 'commute-like', OB, 'mixed', '#b48ead',
         'pre-program', GRAY,
-        FR_L],
+        GRAY],
       'line-opacity': 0.85,
       'line-width': ['interpolate', ['linear'], ['get', 'trips'], 100, 1.2, 2000, 2.8, 11000, 5],
     },
@@ -771,8 +772,8 @@ function renderStory() {
 function renderStats() {
   document.getElementById('statrow').innerHTML = [
     [DATA.stations.length, 'live stations'],
-    ['24M+', 'trips 2018–26'],
-    [DATA.arbitrage.length, 'arbitrage pairs'],
+    ['24M+', 'trips analyzed'],
+    [DATA.arbitrage.length, 'last-mile pairs'],
     [DATA.lanes ? DATA.lanes.features.length.toLocaleString() : '—', 'lane segments'],
   ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
 }
