@@ -49,6 +49,21 @@
   .chip.active { background: #12314d; color: var(--text); border-color: var(--ob); }
   .chip:hover { border-color: var(--muted); }
   .chip.lanes.active { color: #4ade80; border-color: #22c55e66; background: #0d2a1c; }
+  .chip.lock { color: var(--muted); border-style: dashed; }
+  .chip.lock:hover { color: var(--ob-light); border-color: var(--ob); }
+  .teamlab { align-self: center; font-size: 9px; color: var(--ob-light);
+             font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .08em; }
+  .pwrow { max-height: 0; overflow: hidden; display: flex; gap: 6px; align-items: center;
+           padding: 0 16px; transition: max-height .25s ease, padding .25s ease; }
+  .pwrow.open { max-height: 46px; padding: 2px 16px 8px; }
+  .pwrow input { flex: 1; padding: 7px 10px; border-radius: 7px; border: 1.5px solid var(--border);
+                 background: #0a1220; color: var(--text); font-size: 12px;
+                 font-family: 'JetBrains Mono', monospace; outline: none; }
+  .pwrow input:focus { border-color: var(--ob); }
+  .pwrow button { padding: 7px 12px; border: none; border-radius: 7px; background: var(--ob);
+                  color: #fff; font-size: 11.5px; font-weight: 600; cursor: pointer;
+                  font-family: 'DM Sans', sans-serif; }
+  .pwrow #team-err { font-size: 10px; color: var(--ftr); font-family: 'JetBrains Mono', monospace; }
 
   .story { flex: 1; overflow-y: auto; padding: 4px 16px 16px; }
   .story::-webkit-scrollbar { width: 5px; }
@@ -128,13 +143,20 @@
     <button class="chip" data-view="stationage">🆕 Station age</button>
     <button class="chip" data-view="freshness">✨ Bike age</button>
     <button class="chip" data-view="equity">🏘 Income</button>
-    <button class="chip" data-view="members">🎫 Members</button>
+    <span class="teamlab" id="team-lab" style="display:none">Bikes Team ▸</span>
+    <button class="chip" data-view="members" id="members-chip" style="display:none">🎫 Members</button>
     <button class="chip" data-view="netflow">⚖ Net flow</button>
     <button class="chip" data-view="dockfit">🅿 Dock fit</button>
     <button class="chip" data-view="gaps">🚧 Lane gaps</button>
     <button class="chip" data-view="crashes">🚑 Crashes</button>
     <button class="chip" data-view="proposed">📍 Proposed</button>
     <button class="chip lanes" data-view="__lanes">🛣 Bike lanes</button>
+    <button class="chip lock" id="team-lock" title="team-only layers">🔒 Bikes Team</button>
+  </div>
+  <div class="pwrow" id="pwrow">
+    <input id="team-pw" type="password" placeholder="Bikes Team passphrase" autocomplete="current-password">
+    <button id="team-go">Unlock</button>
+    <span id="team-err"></span>
   </div>
   <div class="vhint">layers stack — try 🚑+🚧+🛣 (safety), 🚲+📍 (growth), 🆕+🏘 (equity)</div>
   <div class="story" id="story"></div>
@@ -366,7 +388,7 @@ function arcPoints(a, b, n = 24, bend = 0.18) {
   }
   return pts;
 }
-const BUILD = '20260722a';   // bump per deploy — busts stale cached data files
+const BUILD = '20260722b';   // bump per deploy — busts stale cached data files
 const fyOf = s => { const y = parseInt(s.first); return Number.isFinite(y) ? Math.max(2018, y) : 0; };
 const binOf = y => AGE_BINS.find(b => b.test(y)) || AGE_BINS[3];
 
@@ -387,7 +409,81 @@ async function loadData() {
   DATA.proposed = await opt('proposed.json');
   DATA.dockfit = await opt('dock_resize.json');
   DATA.crashes = await opt('crashes.json');
-  DATA.hoods = await opt('neighborhoods.geojson');
+  // DATA.hoods arrives only via the Bikes Team unlock (members.enc)
+}
+
+// ─── Bikes Team gate: the members analysis ships encrypted ──────────────────
+const MEMBERS_SALT = '45w4VOOu/iU/iVaMCIPSmg==';
+const MEMBERS_ITER = 310000;
+const normKey = s => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const b64e = b => btoa(String.fromCharCode(...new Uint8Array(b)));
+
+async function membersKeyFromPass(pass) {
+  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass),
+    'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: b64d(MEMBERS_SALT), iterations: MEMBERS_ITER, hash: 'SHA-256' },
+    km, { name: 'AES-GCM', length: 256 }, true, ['decrypt']);
+}
+
+async function decryptMembers(key) {
+  const res = await fetch('data/members.enc?v=' + BUILD, { cache: 'no-cache' });
+  if (!res.ok) throw new Error('bundle missing');
+  const blob = new Uint8Array(await res.arrayBuffer());
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: blob.slice(0, 12) },
+    key, blob.slice(12));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+function applyMembersData(bundle) {
+  DATA.hoods = bundle.hoods;
+  DATA.stations.forEach(s => {
+    const m = bundle.stations[normKey(s.n)];
+    if (m) { s.cas = m[0]; s.rushcas = m[1]; }
+  });
+}
+
+function revealMembersUI() {
+  document.getElementById('team-lock').style.display = 'none';
+  document.getElementById('pwrow').classList.remove('open');
+  document.getElementById('team-lab').style.display = '';
+  document.getElementById('members-chip').style.display = '';
+}
+
+async function trySilentMembers() {
+  const raw = localStorage.getItem('bbo-mk');
+  if (!raw) return false;
+  try {
+    const key = await crypto.subtle.importKey('raw', b64d(raw), { name: 'AES-GCM' },
+      false, ['decrypt']);
+    applyMembersData(await decryptMembers(key));
+    revealMembersUI();
+    return true;
+  } catch (e) {
+    localStorage.removeItem('bbo-mk');
+    return false;
+  }
+}
+
+async function unlockMembers(pass) {
+  const err = document.getElementById('team-err');
+  err.textContent = 'checking…';
+  try {
+    const key = await membersKeyFromPass(pass);
+    const bundle = await decryptMembers(key);   // GCM auth = passphrase check
+    applyMembersData(bundle);
+    localStorage.setItem('bbo-mk', b64e(await crypto.subtle.exportKey('raw', key)));
+    err.textContent = '';
+    revealMembersUI();
+    if (map && map.getSource && map.getSource('stations')) {
+      map.getSource('stations').setData(stationGeojson());  // inject casual shares
+      addHoodsLayers();
+      toggleView('members');
+    }
+  } catch (e) {
+    err.textContent = 'wrong passphrase';
+  }
 }
 
 function stationGeojson() {
@@ -477,18 +573,28 @@ function initLayers() {
   }
 
   // neighborhood casual-share choropleth (under everything else)
-  if (DATA.hoods) {
+  if (DATA.hoods) addHoodsLayers();
+  initAnalysisLayers();
+}
+
+// separate so the Bikes Team unlock can add these after boot
+function addHoodsLayers() {
+  if (map.getLayer('hoods-fill') || !DATA.hoods) return;
+  {
+    // insert beneath the analysis layers if they already exist
+    const before = ['gaps-ctx', 'arbitrage-glow', 'st-traffic']
+      .find(id => map.getLayer(id));
     map.addSource('hoods', { type: 'geojson', data: DATA.hoods });
     map.addLayer({
       id: 'hoods-fill', type: 'fill', source: 'hoods',
       layout: { visibility: 'none' },
       paint: { 'fill-color': casRamp('cas'), 'fill-opacity': 0.42 },
-    });
+    }, before);
     map.addLayer({
       id: 'hoods-line', type: 'line', source: 'hoods',
       layout: { visibility: 'none' },
       paint: { 'line-color': '#a9bccd', 'line-width': 1, 'line-opacity': 0.5 },
-    });
+    }, before);
     map.on('click', 'hoods-fill', e => {
       // let station clicks win when overlapping
       if (map.queryRenderedFeatures(e.point, { layers: ['st-members'] }).length) return;
@@ -504,7 +610,9 @@ function initLayers() {
     });
     bindPointer('hoods-fill');
   }
+}
 
+function initAnalysisLayers() {
   // lane gaps: context dots + needed-lane lines
   if (DATA.gaps) {
     map.addSource('gaps', { type: 'geojson', data: DATA.gaps });
@@ -952,6 +1060,7 @@ async function init() {
     if (booted) return;
     booted = true;
     await dataReady;
+    await trySilentMembers();   // returning teammate: hoods ready before layers
     renderStats();
     initLayers();
     syncLayers();
@@ -963,9 +1072,19 @@ async function init() {
     if (map.isStyleLoaded()) { clearInterval(bootPoll); boot(); }
   }, 2000);
 
+  document.getElementById('team-lock').addEventListener('click', () => {
+    document.getElementById('pwrow').classList.toggle('open');
+    document.getElementById('team-pw').focus();
+  });
+  document.getElementById('team-go').addEventListener('click', () =>
+    unlockMembers(document.getElementById('team-pw').value));
+  document.getElementById('team-pw').addEventListener('keydown', e => {
+    if (e.key === 'Enter') unlockMembers(e.target.value);
+  });
+
   document.querySelectorAll('.chip').forEach(chip => chip.addEventListener('click', () => {
     const v = chip.dataset.view;
-    if (!booted) return;
+    if (!booted || !v) return;
     if (v === '__lanes') {
       if (!DATA.lanes) return;
       lanesOn = !lanesOn;
