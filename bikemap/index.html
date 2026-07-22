@@ -33,10 +33,23 @@
                   color: var(--text); letter-spacing: -.01em; }
   .card-head h1 .tog { color: var(--muted); font-weight: 400; font-size: 12px; }
   .card-head .sub { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
-  .modebtn { border: 1px solid var(--border); background: transparent; color: var(--muted);
-             border-radius: 8px; width: 30px; height: 30px; cursor: pointer; font-size: 14px;
-             flex-shrink: 0; }
-  .modebtn:hover { color: var(--text); border-color: var(--muted); }
+  /* sun/moon segmented pill (bottom-right) */
+  .modepill {
+    position: absolute; right: 12px; bottom: 24px; z-index: 10;
+    display: flex; align-items: center; gap: 2px;
+    border: none; cursor: pointer; padding: 4px;
+    background: #16233a; border-radius: 999px;
+    box-shadow: 0 6px 24px rgba(15,23,42,.25);
+  }
+  body:not(.dark) .modepill { background: #16233a; }
+  .modepill .seg {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: #b7952f; background: transparent; transition: all .18s;
+  }
+  .modepill .seg.moon { color: #9fb3c8; }
+  .modepill .seg.on { background: #ffffff; color: #16233a; }
+  .modepill:hover { filter: brightness(1.12); }
   .card-body { padding: 0 14px 12px; overflow-y: auto; }
   .row { display: flex; align-items: flex-start; gap: 9px; padding: 6px 0; cursor: pointer;
          user-select: none; border-radius: 6px; }
@@ -69,6 +82,20 @@
   .pp b { font-size: 13px; color: var(--text); }
   .pp .m { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
 
+  /* active-rides panel (bikemap.nyc-style) */
+  .actpanel {
+    position: absolute; top: 12px; right: 12px; z-index: 10; display: none;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px 12px 8px; box-shadow: 0 8px 30px rgba(15,23,42,.16); width: 220px;
+  }
+  .actpanel.on { display: block; }
+  .actnum { display: flex; align-items: baseline; gap: 7px; }
+  .actnum span { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 26px;
+                 color: var(--text); line-height: 1; }
+  .actnum small { font-size: 10.5px; color: var(--muted); }
+  #actspark { display: block; margin-top: 6px; width: 196px; height: 44px; }
+  .acthint { margin-top: 6px; font-size: 9px; color: var(--muted); letter-spacing: .02em; }
+
   /* ride-replay control bar */
   .replay {
     position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
@@ -96,6 +123,17 @@
 <body>
 <div id="map"></div>
 
+<button class="modepill" id="modebtn" title="light / dark (d)">
+  <span class="seg sun on" id="seg-sun">☀</span>
+  <span class="seg moon" id="seg-moon">☾</span>
+</button>
+
+<div class="actpanel" id="actpanel">
+  <div class="actnum"><span id="actcount">0</span><small>riding now</small></div>
+  <canvas id="actspark" width="196" height="44"></canvas>
+  <div class="acthint">space play · ← → ±15 min · ↑ ↓ speed · d theme</div>
+</div>
+
 <div class="replay" id="replay">
   <button class="rbtn" id="rplay" title="play / pause">⏸</button>
   <div class="clock" id="rclock">08:00<small id="rday"></small></div>
@@ -109,7 +147,6 @@
       <h1>Boston Bike Map <span class="tog" id="tog">▾</span></h1>
       <div class="sub">every bike facility · Boston, Cambridge, Somerville & Brookline</div>
     </div>
-    <button class="modebtn" id="modebtn" title="light / dark">🌙</button>
   </div>
   <div class="card-body" id="legend"></div>
   <div class="foot">
@@ -182,15 +219,60 @@ async function loadRides() {
   document.getElementById('rday').textContent = rides.day + ' · ' +
     new Date(rides.day + 'T12:00:00').toLocaleDateString([], { weekday: 'long' });
   document.getElementById('replay').classList.add('on');
+  // active-rides panel: per-minute concurrency for the counter + sparkline
+  actPerMin = new Array(1440).fill(0);
+  for (const t of rideTrips) {
+    const a = Math.max(0, Math.floor(t.ts[0] / 60));
+    const b = Math.min(1439, Math.floor(t.ts[t.ts.length - 1] / 60));
+    for (let m = a; m <= b; m++) actPerMin[m]++;
+  }
+  actMax = Math.max(...actPerMin);
+  document.getElementById('actpanel').classList.add('on');
   renderLegend();
   requestAnimationFrame(tick);
+}
+
+// ─── active-rides sparkline ──────────────────────────────────────────────────
+let actPerMin = null, actMax = 1;
+
+function drawSpark() {
+  if (!actPerMin) return;
+  const cv = document.getElementById('actspark');
+  const dpr = window.devicePixelRatio || 1;
+  const W = 196, H = 44;
+  if (cv.width !== W * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const cs = getComputedStyle(document.body);
+  const line = cs.getPropertyValue('--ob').trim() || '#288BE4';
+  const muted = cs.getPropertyValue('--border').trim() || '#e2e8f0';
+  // area + line
+  g.beginPath();
+  for (let m = 0; m < 1440; m++) {
+    const x = m / 1439 * W, y = H - 3 - (actPerMin[m] / actMax) * (H - 8);
+    m ? g.lineTo(x, y) : g.moveTo(x, y);
+  }
+  g.strokeStyle = line; g.lineWidth = 1.4; g.stroke();
+  g.lineTo(W, H); g.lineTo(0, H); g.closePath();
+  g.fillStyle = line + '22'; g.fill();
+  // hour gridlines at 6/12/18
+  g.strokeStyle = muted; g.lineWidth = 0.5;
+  for (const h of [6, 12, 18]) {
+    g.beginPath(); g.moveTo(h / 24 * W, 0); g.lineTo(h / 24 * W, H); g.stroke();
+  }
+  // now-cursor
+  const x = simTime / 86400 * W;
+  g.strokeStyle = cs.getPropertyValue('--text').trim() || '#0f172a';
+  g.lineWidth = 1.2;
+  g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke();
 }
 
 function ridesLayer() {
   return new deck.TripsLayer({
     id: 'rides', data: rideTrips,
     getPath: d => d.path, getTimestamps: d => d.ts, getColor: rideColor,
-    currentTime: simTime, trailLength: 700, fadeTrail: true,
+    currentTime: simTime, trailLength: 320, fadeTrail: true,
     widthMinPixels: 2.6, capRounded: true, jointRounded: true, opacity: 0.92,
     updateTriggers: { getColor: darkMode },
   });
@@ -211,6 +293,11 @@ function tick(now) {
       document.getElementById('rclock').childNodes[0].textContent =
         `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
       document.getElementById('rslider').value = Math.floor(simTime);
+      if (actPerMin) {
+        document.getElementById('actcount').textContent =
+          ridesOn ? actPerMin[Math.min(1439, Math.floor(simTime / 60))].toLocaleString() : '—';
+        drawSpark();
+      }
     }
   }
   requestAnimationFrame(tick);
@@ -327,7 +414,8 @@ function rebuildAfterStyle() {
 function setMode(dark) {
   darkMode = dark;
   document.body.classList.toggle('dark', dark);
-  document.getElementById('modebtn').textContent = dark ? '☀️' : '🌙';
+  document.getElementById('seg-sun').classList.toggle('on', !dark);
+  document.getElementById('seg-moon').classList.toggle('on', dark);
   map.setStyle(STYLES[dark ? 'dark' : 'light']);   // wipes custom layers
   const wait = () => {
     if (!map.isStyleLoaded()) { setTimeout(wait, 200); return; }
@@ -344,10 +432,10 @@ async function init() {
     center: [-71.09, 42.355], zoom: 12.4,
     attributionControl: { compact: true },
   });
-  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
   map.addControl(new maplibregl.GeolocateControl({
     positionOptions: { enableHighAccuracy: true }, trackUserLocation: true,
-  }), 'bottom-right');
+  }), 'top-right');
 
   const dataReady = fetch('../atlas/data/lanes_all.geojson')
     .then(r => r.json())
@@ -388,6 +476,30 @@ async function init() {
   });
   document.getElementById('rslider').addEventListener('input', e => {
     simTime = +e.target.value;
+  });
+
+  // keyboard controls (bikemap.nyc-style)
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || !overlay) return;
+    if (e.code === 'Space') {
+      e.preventDefault();
+      playing = !playing;
+      document.getElementById('rplay').textContent = playing ? '⏸' : '▶';
+    } else if (e.code === 'ArrowRight') {
+      simTime = (simTime + 900) % 86400;
+    } else if (e.code === 'ArrowLeft') {
+      simTime = (simTime - 900 + 86400) % 86400;
+    } else if (e.code === 'ArrowUp') {
+      e.preventDefault();
+      speedIdx = Math.min(SPEEDS.length - 1, speedIdx + 1);
+      document.getElementById('rspeed').textContent = SPEEDS[speedIdx] + '×';
+    } else if (e.code === 'ArrowDown') {
+      e.preventDefault();
+      speedIdx = Math.max(0, speedIdx - 1);
+      document.getElementById('rspeed').textContent = SPEEDS[speedIdx] + '×';
+    } else if (e.code === 'KeyD') {
+      setMode(!darkMode);
+    }
   });
 
   loadRides();
