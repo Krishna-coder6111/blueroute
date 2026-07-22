@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boston Bike Map — every lane in Boston, Cambridge, Somerville & Brookline</title>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --card: #ffffff; --border: #e2e8f0; --text: #0f172a; --muted: #64748b;
+    --sep: #15803d; --buf: #0d9488; --lane: #65a30d; --path: #2563eb; --shared: #94a3b8;
+    --ob: #288BE4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; height: 100vh; overflow: hidden; }
+  #map { position: absolute; inset: 0; }
+
+  .card {
+    position: absolute; top: 12px; left: 12px; z-index: 10;
+    width: 252px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; box-shadow: 0 8px 30px rgba(15,23,42,.12);
+    overflow: hidden;
+  }
+  .card-head { padding: 13px 14px 9px; cursor: pointer; user-select: none; }
+  .card-head h1 { font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 800;
+                  color: var(--text); letter-spacing: -.01em; display: flex; justify-content: space-between; }
+  .card-head h1 .tog { color: var(--muted); font-weight: 400; }
+  .card-head .sub { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+  .card-body { padding: 0 14px 12px; }
+  .row { display: flex; align-items: center; gap: 9px; padding: 5px 0; cursor: pointer; user-select: none; }
+  .row input { accent-color: var(--ob); width: 14px; height: 14px; cursor: pointer; }
+  .sample { width: 26px; height: 0; border-top: 4px solid; border-radius: 2px; flex-shrink: 0; }
+  .sample.dash { border-top-style: dashed; }
+  .sample.dot { border-top-style: dotted; }
+  .sample.dotpt { border: none; width: 26px; height: 8px; display: flex; align-items: center; }
+  .sample.dotpt::before { content: ''; width: 8px; height: 8px; border-radius: 50%;
+                          background: var(--ob); margin: 0 auto; }
+  .row .lab { font-size: 12.5px; color: var(--text); flex: 1; }
+  .row .ct { font-size: 10px; color: var(--muted); }
+  .divider { border-top: 1px solid var(--border); margin: 7px 0; }
+  .foot { padding: 9px 14px 12px; border-top: 1px solid var(--border);
+          font-size: 10.5px; color: var(--muted); line-height: 1.6; }
+  .foot a { color: var(--ob); text-decoration: none; font-weight: 600; }
+  .collapsed .card-body, .collapsed .foot { display: none; }
+
+  .maplibregl-popup-content { font-family: 'DM Sans', sans-serif; font-size: 12.5px;
+    border-radius: 8px !important; padding: 9px 12px !important;
+    box-shadow: 0 8px 30px rgba(15,23,42,.18) !important; }
+  .pp b { font-size: 13px; color: var(--text); }
+  .pp .m { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+
+  @media (max-width: 640px) { .card { width: calc(100vw - 24px); } }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="card" id="card">
+  <div class="card-head" id="card-head">
+    <h1>Boston Bike Map <span class="tog" id="tog">▾</span></h1>
+    <div class="sub">every bike facility · Boston, Cambridge, Somerville & Brookline</div>
+  </div>
+  <div class="card-body" id="legend"></div>
+  <div class="foot">
+    Sources: City of Boston (2024), City of Cambridge, MassDOT inventory.
+    <br><a href="../">🚲 Route planner</a> · <a href="../atlas/">📊 Insights atlas</a>
+  </div>
+</div>
+
+<script>
+const TYPES = [
+  { t: 'separated', label: 'Protected / separated', color: '#15803d', width: 3.2, kind: 'solid' },
+  { t: 'buffered',  label: 'Buffered lane',         color: '#0d9488', width: 2.6, kind: 'solid' },
+  { t: 'lane',      label: 'Conventional lane',     color: '#65a30d', width: 1.9, kind: 'solid' },
+  { t: 'path',      label: 'Shared-use path',       color: '#2563eb', width: 2.4, kind: 'dash', dash: [2.4, 1.6] },
+  { t: 'shared',    label: 'Sharrows / shared',     color: '#94a3b8', width: 1.6, kind: 'dot',  dash: [0.4, 1.8] },
+];
+const LANE_LABELS = Object.fromEntries(TYPES.map(x => [x.t, x.label]));
+const GBFS_INFO = 'https://gbfs.lyft.com/gbfs/2.3/bos/en/station_information.json';
+
+let map, lanes = null, counts = {}, stationsOn = false;
+
+function legendRow(t) {
+  const s = t.kind === 'solid' ? `<span class="sample" style="border-color:${t.color}"></span>`
+    : t.kind === 'dash' ? `<span class="sample dash" style="border-color:${t.color}"></span>`
+    : `<span class="sample dot" style="border-color:${t.color}"></span>`;
+  return `<label class="row"><input type="checkbox" checked data-t="${t.t}">${s}
+    <span class="lab">${t.label}</span><span class="ct">${(counts[t.t] || 0).toLocaleString()}</span></label>`;
+}
+
+function renderLegend() {
+  document.getElementById('legend').innerHTML =
+    TYPES.map(legendRow).join('') +
+    `<div class="divider"></div>
+     <label class="row"><input type="checkbox" data-t="__stations"><span class="sample dotpt"></span>
+       <span class="lab">Bluebikes stations</span><span class="ct" id="stct"></span></label>`;
+  document.querySelectorAll('#legend input').forEach(cb => cb.addEventListener('change', () => {
+    const t = cb.dataset.t;
+    if (t === '__stations') { toggleStations(cb.checked); return; }
+    if (map.getLayer('l-' + t)) map.setLayoutProperty('l-' + t, 'visibility', cb.checked ? 'visible' : 'none');
+  }));
+}
+
+async function toggleStations(on) {
+  stationsOn = on;
+  if (on && !map.getSource('stations')) {
+    const info = await fetch(GBFS_INFO).then(r => r.json());
+    const feats = info.data.stations.map(s => ({
+      type: 'Feature', geometry: { type: 'Point', coordinates: [s.lon, s.lat] },
+      properties: { n: s.name, cap: s.capacity || 0 },
+    }));
+    document.getElementById('stct').textContent = feats.length.toLocaleString();
+    map.addSource('stations', { type: 'geojson', data: { type: 'FeatureCollection', features: feats } });
+    map.addLayer({
+      id: 'stations', type: 'circle', source: 'stations',
+      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 2, 14, 5],
+               'circle-color': '#288BE4', 'circle-opacity': .85,
+               'circle-stroke-color': '#fff', 'circle-stroke-width': 1 },
+    });
+    map.on('click', 'stations', e => {
+      const p = e.features[0].properties;
+      new maplibregl.Popup().setLngLat(e.lngLat)
+        .setHTML(`<div class="pp"><b>${p.n}</b><div class="m">${p.cap} docks · Bluebikes</div></div>`).addTo(map);
+    });
+    map.on('mouseenter', 'stations', () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', 'stations', () => map.getCanvas().style.cursor = '');
+    return;
+  }
+  if (map.getLayer('stations'))
+    map.setLayoutProperty('stations', 'visibility', on ? 'visible' : 'none');
+}
+
+function addLaneLayers() {
+  map.addSource('lanes', { type: 'geojson', data: lanes });
+  for (const t of TYPES) {
+    map.addLayer({
+      id: 'l-' + t.t, type: 'line', source: 'lanes',
+      filter: ['==', ['get', 't'], t.t],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': t.color, 'line-opacity': .9,
+               'line-width': ['interpolate', ['linear'], ['zoom'], 10, t.width * .5, 14, t.width, 16, t.width * 1.8],
+               ...(t.dash ? { 'line-dasharray': t.dash } : {}) },
+    });
+    map.on('click', 'l-' + t.t, e => {
+      const p = e.features[0].properties;
+      new maplibregl.Popup().setLngLat(e.lngLat)
+        .setHTML(`<div class="pp"><b>${LANE_LABELS[p.t]}</b>
+          <div class="m">${p.c ? p.c[0].toUpperCase() + p.c.slice(1) : ''} inventory</div></div>`).addTo(map);
+    });
+    map.on('mouseenter', 'l-' + t.t, () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', 'l-' + t.t, () => map.getCanvas().style.cursor = '');
+  }
+}
+
+async function init() {
+  map = new maplibregl.Map({
+    container: 'map',
+    style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    center: [-71.09, 42.355], zoom: 12.4,
+    attributionControl: { compact: true },
+  });
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+  map.addControl(new maplibregl.GeolocateControl({
+    positionOptions: { enableHighAccuracy: true }, trackUserLocation: true,
+  }), 'bottom-right');
+
+  const dataReady = fetch('../atlas/data/lanes_all.geojson')
+    .then(r => r.json())
+    .then(gj => {
+      lanes = gj;
+      gj.features.forEach(f => { const t = f.properties.t; counts[t] = (counts[t] || 0) + 1; });
+      renderLegend();
+    });
+
+  let booted = false;
+  const boot = async () => {
+    if (booted) return;
+    booted = true;
+    await dataReady;
+    addLaneLayers();
+  };
+  map.once('load', boot);
+  const poll = setInterval(() => {
+    if (booted) { clearInterval(poll); return; }
+    if (map.isStyleLoaded()) { clearInterval(poll); boot(); }
+  }, 2000);
+
+  document.getElementById('card-head').addEventListener('click', () => {
+    const c = document.getElementById('card');
+    c.classList.toggle('collapsed');
+    document.getElementById('tog').textContent = c.classList.contains('collapsed') ? '▸' : '▾';
+  });
+}
+
+init();
+</script>
+</body>
+</html>
