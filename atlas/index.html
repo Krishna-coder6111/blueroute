@@ -128,6 +128,7 @@
     <button class="chip" data-view="stationage">🆕 Station age</button>
     <button class="chip" data-view="freshness">✨ Bike age</button>
     <button class="chip" data-view="equity">🏘 Income</button>
+    <button class="chip" data-view="members">🎫 Members</button>
     <button class="chip" data-view="netflow">⚖ Net flow</button>
     <button class="chip" data-view="dockfit">🅿 Dock fit</button>
     <button class="chip" data-view="gaps">🚧 Lane gaps</button>
@@ -284,6 +285,25 @@ const VIEWS = {
       ['swatch', '#28648E', 'volume on/near existing lanes'],
     ],
   },
+  members: {
+    title: 'Where riders pay casual rates — the membership pitch map',
+    html: `<p>Share of the last 12 months' trips made by <b>casual riders</b>
+      (no membership), by 2026 neighborhood. Systemwide: <b>29.3%</b>. The
+      catch: downtown casuals are tourists. Toggle <b>rush-hour only</b> below —
+      casuals riding <b>Mon–Fri at rush</b> are residents commuting at casual
+      prices, the real conversion audience.</p>
+      <p><b>Mattapan tops both lists</b> (41.7% casual, 40.3% even at rush) —
+      followed by Southern Dorchester, East Boston, Hyde Park + West Roxbury,
+      and South Boston. Every one of those riders qualifies-or-close for the
+      <b>income-eligible membership: $5/month — or $5/YEAR for Boston
+      residents</b> (Boston Bikes Pass). Click a neighborhood or station.</p>`,
+    legend: [
+      ['swatch', OB_L, 'mostly members (<25% casual)'],
+      ['swatch', '#c473b6', '~30% casual'],
+      ['swatch', FR, 'high casual share (40%+)'],
+      ['swatch', GRAY_D, 'below threshold (dimmed)'],
+    ],
+  },
   crashes: {
     title: 'A decade of bike crashes, point by point',
     html: `<p><b>3,945 bike crashes</b> from Boston's Vision Zero records
@@ -325,8 +345,11 @@ const VIEW_LAYERS = {
   dockfit: ['dockfit'],
   gaps: ['gaps-ctx', 'gaps-lines'],
   crashes: ['crashes'],
+  members: ['hoods-fill', 'hoods-line', 'st-members'],
   proposed: ['proposed'],
 };
+let memberProp = 'cas';    // 'cas' | 'rushcas' (rush-hour-only toggle)
+let memberThr = 0;         // dim neighborhoods below this casual %
 
 // ─── Utils ───────────────────────────────────────────────────────────────────
 function arcPoints(a, b, n = 24, bend = 0.18) {
@@ -343,7 +366,7 @@ function arcPoints(a, b, n = 24, bend = 0.18) {
   }
   return pts;
 }
-const BUILD = '20260717a';   // bump per deploy — busts stale cached data files
+const BUILD = '20260722a';   // bump per deploy — busts stale cached data files
 const fyOf = s => { const y = parseInt(s.first); return Number.isFinite(y) ? Math.max(2018, y) : 0; };
 const binOf = y => AGE_BINS.find(b => b.test(y)) || AGE_BINS[3];
 
@@ -364,6 +387,7 @@ async function loadData() {
   DATA.proposed = await opt('proposed.json');
   DATA.dockfit = await opt('dock_resize.json');
   DATA.crashes = await opt('crashes.json');
+  DATA.hoods = await opt('neighborhoods.geojson');
 }
 
 function stationGeojson() {
@@ -376,6 +400,7 @@ function stationGeojson() {
         n: s.n, cap: s.cap || 0, trips: s.trips || 0, birth: s.birth || 0,
         inc: s.inc || 0, tier: s.tier || '', ebike: s.ebike ?? -1,
         net: s.net ?? 0, first: s.first || '', fy: fyOf(s),
+        t12: s.t12 || 0, cas: s.cas ?? -1, rushcas: s.rushcas ?? -1, hood: s.hood || '',
       },
     })),
   };
@@ -396,7 +421,10 @@ function arbitrageGeojson() {
 // ─── Layers ──────────────────────────────────────────────────────────────────
 function popupRow(p) {
   return [
+    p.hood || '',
     p.trips ? `<i>${(+p.trips).toLocaleString()}</i> trips` : '',
+    p.t12 ? `<i>${(+p.t12).toLocaleString()}</i> in last 12 mo` : '',
+    p.cas >= 0 ? `casual <i>${p.cas}%</i>${p.rushcas >= 0 ? ` (<i>${p.rushcas}%</i> at rush)` : ''}` : '',
     p.first ? `first trip <i>${p.first}</i>` : '',
     p.birth > 0 ? `avg bike birth <i>${(+p.birth).toFixed(1)}</i>` : '',
     p.net ? `net flow <i>${(+p.net).toLocaleString()}</i>` : '',
@@ -446,6 +474,35 @@ function initLayers() {
       });
       bindPointer(id);
     }
+  }
+
+  // neighborhood casual-share choropleth (under everything else)
+  if (DATA.hoods) {
+    map.addSource('hoods', { type: 'geojson', data: DATA.hoods });
+    map.addLayer({
+      id: 'hoods-fill', type: 'fill', source: 'hoods',
+      layout: { visibility: 'none' },
+      paint: { 'fill-color': casRamp('cas'), 'fill-opacity': 0.42 },
+    });
+    map.addLayer({
+      id: 'hoods-line', type: 'line', source: 'hoods',
+      layout: { visibility: 'none' },
+      paint: { 'line-color': '#a9bccd', 'line-width': 1, 'line-opacity': 0.5 },
+    });
+    map.on('click', 'hoods-fill', e => {
+      // let station clicks win when overlapping
+      if (map.queryRenderedFeatures(e.point, { layers: ['st-members'] }).length) return;
+      const p = e.features[0].properties;
+      const cas = p.cas >= 0 ? `${p.cas}%` : 'n/a';
+      const rc = p.rushcas >= 0 ? `${p.rushcas}%` : 'n/a';
+      new maplibregl.Popup().setLngLat(e.lngLat)
+        .setHTML(`<div class="pp"><b>${p.n}</b>
+          <div class="m"><i>${(+p.trips).toLocaleString()}</i> trips (12 mo) from <i>${p.nst}</i> stations<br>
+          casual share <i>${cas}</i> · at weekday rush <i>${rc}</i><br>
+          ≈ <i>${(+p.castrips).toLocaleString()}</i> casual trips/yr · station tier: ${p.tier}</div></div>`)
+        .addTo(map);
+    });
+    bindPointer('hoods-fill');
   }
 
   // lane gaps: context dots + needed-lane lines
@@ -545,6 +602,11 @@ function initLayers() {
       'circle-color': ['interpolate', ['linear'], ['get', 'net'], -9000, FR, -400, FR_L, 0, GRAY_D, 800, OB_L, 20000, OB],
       'circle-opacity': 0.8,
     },
+  };
+  stationPaints.members = {
+    'circle-radius': ['interpolate', ['linear'], ['sqrt', ['+', ['get', 't12'], 1]], 0, 1.5, 100, 4, 700, 12],
+    'circle-color': casRamp('cas'),
+    'circle-opacity': ['case', ['<', ['get', 'cas'], 0], 0.15, 0.9],
   };
   for (const [v, paint] of Object.entries(stationPaints)) {
     map.addLayer({
@@ -661,7 +723,23 @@ function initLayers() {
 // ─── View toggling (multi-layer) ────────────────────────────────────────────
 function hasView(v) {
   return !((v === 'gaps' && !DATA.gaps) || (v === 'proposed' && !DATA.proposed) ||
-           (v === 'dockfit' && !DATA.dockfit) || (v === 'crashes' && !DATA.crashes));
+           (v === 'dockfit' && !DATA.dockfit) || (v === 'crashes' && !DATA.crashes) ||
+           (v === 'members' && !DATA.hoods));
+}
+
+// casual-share color ramp shared by neighborhood fills and station dots
+function casRamp(prop) {
+  return ['case', ['<', ['get', prop], 0], GRAY_D,
+    ['interpolate', ['linear'], ['get', prop],
+      15, OB, 22, OB_L, 30, '#c473b6', 38, FR_L, 45, FR]];
+}
+
+function applyMemberStyle() {
+  if (!map.getLayer('hoods-fill')) return;
+  map.setPaintProperty('hoods-fill', 'fill-color', casRamp(memberProp));
+  map.setPaintProperty('hoods-fill', 'fill-opacity',
+    ['case', ['>=', ['get', memberProp], memberThr], 0.42, 0.06]);
+  map.setPaintProperty('st-members', 'circle-color', casRamp(memberProp));
 }
 
 function syncLayers() {
@@ -735,6 +813,23 @@ function renderStory() {
     html += `<div class="yearchips">
       <button class="ychip subtoggle ${heavyOnly ? 'on' : ''}" id="heavy-toggle">show heavy corridors only (≥2,000 trips)</button>
     </div>`;
+  }
+
+  if (primaryView === 'members') {
+    html += `<div class="yearchips">
+      <button class="ychip subtoggle ${memberProp === 'rushcas' ? 'on' : ''}" id="rush-toggle">rush-hour casuals only (commuters)</button>
+      ${[0, 25, 30, 35].map(t =>
+        `<button class="ychip mthr ${memberThr === t ? 'on' : ''}" data-thr="${t}">${t === 0 ? 'all' : '≥' + t + '%'}</button>`).join('')}
+    </div>`;
+    if (DATA.hoods) {
+      const hs = DATA.hoods.features.map(f => f.properties)
+        .filter(p => p.trips > 0)
+        .sort((a, b) => (b[memberProp] || 0) - (a[memberProp] || 0)).slice(0, 6);
+      html += `<div class="toplist">` + hs.map((p, i) =>
+        `<div class="item" data-hood="${p.n}">
+          <span class="rank">#${i + 1}</span><span>${p.n}</span>
+          <span class="val">${p[memberProp]}%</span></div>`).join('') + `</div>`;
+    }
   }
 
   // legends for every active view (stacking-aware)
@@ -813,6 +908,23 @@ function renderStory() {
   }));
   const ht = el.querySelector('#heavy-toggle');
   if (ht) ht.addEventListener('click', () => { heavyOnly = !heavyOnly; applyHeavyFilter(); renderStory(); });
+  const rt = el.querySelector('#rush-toggle');
+  if (rt) rt.addEventListener('click', () => {
+    memberProp = memberProp === 'cas' ? 'rushcas' : 'cas';
+    applyMemberStyle(); renderStory();
+  });
+  el.querySelectorAll('.ychip.mthr').forEach(c => c.addEventListener('click', () => {
+    memberThr = +c.dataset.thr;
+    applyMemberStyle(); renderStory();
+  }));
+  el.querySelectorAll('.item[data-hood]').forEach(item => item.addEventListener('click', () => {
+    const f = DATA.hoods.features.find(x => x.properties.n === item.dataset.hood);
+    if (!f) return;
+    const ring = f.geometry.coordinates[0];
+    const lng = ring.reduce((s, c) => s + c[0], 0) / ring.length;
+    const lat = ring.reduce((s, c) => s + c[1], 0) / ring.length;
+    map.flyTo({ center: [lng, lat], zoom: 13.2, duration: 900 });
+  }));
 }
 
 function renderStats() {
