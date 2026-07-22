@@ -6,12 +6,16 @@
 <title>Boston Bike Map — every lane in Boston, Cambridge, Somerville & Brookline</title>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/deck.gl@9.0.36/dist.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --card: #ffffff; --border: #e2e8f0; --text: #0f172a; --muted: #64748b;
-    --sep: #15803d; --buf: #0d9488; --lane: #65a30d; --path: #2563eb; --shared: #94a3b8;
-    --ob: #288BE4;
+    --hover: #f1f5f9; --ob: #288BE4;
+  }
+  body.dark {
+    --card: #0b1b2b; --border: #1e3852; --text: #f2f6fa; --muted: #7d92a8;
+    --hover: #10263a;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'DM Sans', sans-serif; height: 100vh; overflow: hidden; }
@@ -19,37 +23,72 @@
 
   .card {
     position: absolute; top: 12px; left: 12px; z-index: 10;
-    width: 252px; background: var(--card); border: 1px solid var(--border);
-    border-radius: 12px; box-shadow: 0 8px 30px rgba(15,23,42,.12);
-    overflow: hidden;
+    width: 274px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; box-shadow: 0 8px 30px rgba(15,23,42,.16);
+    overflow: hidden; max-height: calc(100vh - 24px); display: flex; flex-direction: column;
   }
-  .card-head { padding: 13px 14px 9px; cursor: pointer; user-select: none; }
+  .card-head { padding: 13px 14px 9px; display: flex; align-items: flex-start; gap: 8px; }
+  .card-head .titles { flex: 1; cursor: pointer; user-select: none; }
   .card-head h1 { font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 800;
-                  color: var(--text); letter-spacing: -.01em; display: flex; justify-content: space-between; }
-  .card-head h1 .tog { color: var(--muted); font-weight: 400; }
+                  color: var(--text); letter-spacing: -.01em; }
+  .card-head h1 .tog { color: var(--muted); font-weight: 400; font-size: 12px; }
   .card-head .sub { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
-  .card-body { padding: 0 14px 12px; }
-  .row { display: flex; align-items: center; gap: 9px; padding: 5px 0; cursor: pointer; user-select: none; }
-  .row input { accent-color: var(--ob); width: 14px; height: 14px; cursor: pointer; }
-  .sample { width: 26px; height: 0; border-top: 4px solid; border-radius: 2px; flex-shrink: 0; }
+  .modebtn { border: 1px solid var(--border); background: transparent; color: var(--muted);
+             border-radius: 8px; width: 30px; height: 30px; cursor: pointer; font-size: 14px;
+             flex-shrink: 0; }
+  .modebtn:hover { color: var(--text); border-color: var(--muted); }
+  .card-body { padding: 0 14px 12px; overflow-y: auto; }
+  .row { display: flex; align-items: flex-start; gap: 9px; padding: 6px 0; cursor: pointer;
+         user-select: none; border-radius: 6px; }
+  .row:hover { background: var(--hover); }
+  .row input { accent-color: var(--ob); width: 14px; height: 14px; cursor: pointer; margin-top: 2px; }
+  .sample { width: 26px; height: 0; border-top: 4px solid; border-radius: 2px;
+            flex-shrink: 0; margin-top: 7px; }
   .sample.dash { border-top-style: dashed; }
   .sample.dot { border-top-style: dotted; }
-  .sample.dotpt { border: none; width: 26px; height: 8px; display: flex; align-items: center; }
-  .sample.dotpt::before { content: ''; width: 8px; height: 8px; border-radius: 50%;
-                          background: var(--ob); margin: 0 auto; }
-  .row .lab { font-size: 12.5px; color: var(--text); flex: 1; }
-  .row .ct { font-size: 10px; color: var(--muted); }
+  .sample.dotpt { border: none; width: 26px; height: 14px; display: flex; align-items: center; }
+  .sample.dotpt::before { content: ''; width: 9px; height: 9px; border-radius: 50%;
+                          background: var(--ob); margin: 0 auto; border: 1.5px solid var(--card); }
+  .row .txt { flex: 1; }
+  .row .lab { font-size: 12.5px; color: var(--text); font-weight: 600;
+              display: flex; justify-content: space-between; }
+  .row .lab .ct { font-size: 10px; color: var(--muted); font-weight: 400; }
+  .row .desc { font-size: 10.5px; color: var(--muted); line-height: 1.45; margin-top: 1px; }
   .divider { border-top: 1px solid var(--border); margin: 7px 0; }
   .foot { padding: 9px 14px 12px; border-top: 1px solid var(--border);
-          font-size: 10.5px; color: var(--muted); line-height: 1.6; }
+          font-size: 10.5px; color: var(--muted); line-height: 1.6; flex-shrink: 0; }
   .foot a { color: var(--ob); text-decoration: none; font-weight: 600; }
   .collapsed .card-body, .collapsed .foot { display: none; }
 
   .maplibregl-popup-content { font-family: 'DM Sans', sans-serif; font-size: 12.5px;
     border-radius: 8px !important; padding: 9px 12px !important;
-    box-shadow: 0 8px 30px rgba(15,23,42,.18) !important; }
+    background: var(--card) !important; color: var(--text) !important;
+    box-shadow: 0 8px 30px rgba(15,23,42,.22) !important; }
+  body.dark .maplibregl-popup-tip { border-top-color: var(--card) !important;
+    border-bottom-color: var(--card) !important; }
   .pp b { font-size: 13px; color: var(--text); }
   .pp .m { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+
+  /* ride-replay control bar */
+  .replay {
+    position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
+    z-index: 10; display: none; align-items: center; gap: 10px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 999px;
+    padding: 8px 14px; box-shadow: 0 8px 30px rgba(15,23,42,.18);
+    width: min(560px, calc(100vw - 24px));
+  }
+  .replay.on { display: flex; }
+  .rbtn { border: none; background: var(--ob); color: #fff; width: 34px; height: 34px;
+          border-radius: 50%; font-size: 13px; cursor: pointer; flex-shrink: 0; }
+  .speed { border: 1px solid var(--border); background: transparent; color: var(--text);
+           border-radius: 8px; padding: 5px 8px; font-size: 11px; cursor: pointer;
+           font-family: 'DM Sans', sans-serif; font-weight: 600; flex-shrink: 0; min-width: 52px; }
+  .clock { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 15px;
+           color: var(--text); flex-shrink: 0; min-width: 74px; text-align: center; }
+  .clock small { display: block; font-family: 'DM Sans', sans-serif; font-weight: 400;
+                 font-size: 8.5px; color: var(--muted); }
+  .replay input[type=range] { flex: 1; accent-color: var(--ob); min-width: 80px; }
+  .ridechip { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
 
   @media (max-width: 640px) { .card { width: calc(100vw - 24px); } }
 </style>
@@ -57,10 +96,20 @@
 <body>
 <div id="map"></div>
 
+<div class="replay" id="replay">
+  <button class="rbtn" id="rplay" title="play / pause">⏸</button>
+  <div class="clock" id="rclock">08:00<small id="rday"></small></div>
+  <input type="range" id="rslider" min="0" max="86340" step="60" value="28800">
+  <button class="speed" id="rspeed" title="playback speed">300×</button>
+</div>
+
 <div class="card" id="card">
-  <div class="card-head" id="card-head">
-    <h1>Boston Bike Map <span class="tog" id="tog">▾</span></h1>
-    <div class="sub">every bike facility · Boston, Cambridge, Somerville & Brookline</div>
+  <div class="card-head">
+    <div class="titles" id="card-head">
+      <h1>Boston Bike Map <span class="tog" id="tog">▾</span></h1>
+      <div class="sub">every bike facility · Boston, Cambridge, Somerville & Brookline</div>
+    </div>
+    <button class="modebtn" id="modebtn" title="light / dark">🌙</button>
   </div>
   <div class="card-body" id="legend"></div>
   <div class="foot">
@@ -71,75 +120,158 @@
 
 <script>
 const TYPES = [
-  { t: 'separated', label: 'Protected / separated', color: '#15803d', width: 3.2, kind: 'solid' },
-  { t: 'buffered',  label: 'Buffered lane',         color: '#0d9488', width: 2.6, kind: 'solid' },
-  { t: 'lane',      label: 'Conventional lane',     color: '#65a30d', width: 1.9, kind: 'solid' },
-  { t: 'path',      label: 'Shared-use path',       color: '#2563eb', width: 2.4, kind: 'dash', dash: [2.4, 1.6] },
-  { t: 'shared',    label: 'Sharrows / shared',     color: '#94a3b8', width: 1.6, kind: 'dot',  dash: [0.4, 1.8] },
+  { t: 'separated', label: 'Protected / separated', kind: 'solid', width: 3.2,
+    light: '#15803d', dark: '#22c55e',
+    desc: 'Physically separated from car traffic — curbs, flex posts, or a parking lane. Safest on-street option.' },
+  { t: 'buffered', label: 'Buffered lane', kind: 'solid', width: 2.6,
+    light: '#0d9488', dark: '#2dd4bf',
+    desc: 'Painted lane plus a striped buffer of space — no physical barrier.' },
+  { t: 'lane', label: 'Conventional lane', kind: 'solid', width: 1.9,
+    light: '#65a30d', dark: '#86efac',
+    desc: 'A painted lane directly beside moving traffic.' },
+  { t: 'path', label: 'Shared-use path', kind: 'dash', width: 2.4, dash: [2.4, 1.6],
+    light: '#2563eb', dark: '#38bdf8',
+    desc: 'Off-street path — no cars, shared with people walking (Esplanade, Southwest Corridor…).' },
+  { t: 'shared', label: 'Sharrows / shared lane', kind: 'dot', width: 1.6, dash: [0.4, 1.8],
+    light: '#64748b', dark: '#9aa79b',
+    desc: 'Paint markings only — you ride in the same lane as cars. Not a bike lane.' },
 ];
 const LANE_LABELS = Object.fromEntries(TYPES.map(x => [x.t, x.label]));
 const GBFS_INFO = 'https://gbfs.lyft.com/gbfs/2.3/bos/en/station_information.json';
+const STYLES = {
+  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+};
 
-let map, lanes = null, counts = {}, stationsOn = false;
+let map, lanes = null, counts = {}, stationFC = null, darkMode = false;
+
+// ─── ride replay (bikemap.nyc-style trip animation) ──────────────────────────
+const SPEEDS = [60, 150, 300, 600, 1200];
+const RIDE_COLORS = {
+  light: { classic: [124, 58, 237], ebike: [2, 132, 199] },   // deeper on white
+  dark:  { classic: [187, 154, 247], ebike: [125, 207, 255] }, // pastel on dark
+};
+let rides = null, rideTrips = null, overlay = null;
+let simTime = 8 * 3600, playing = true, speedIdx = 2, ridesOn = true, lastFrame = null;
+
+function rideColor(d) {
+  const c = RIDE_COLORS[darkMode ? 'dark' : 'light'];
+  return d.e ? c.ebike : c.classic;
+}
+
+async function loadRides() {
+  try {
+    const res = await fetch('data/rides.json');
+    if (!res.ok) return;
+    rides = await res.json();
+  } catch (e) { return; }
+  rideTrips = rides.trips.map(([p, rev, start, dur, e]) => {
+    let path = rides.pairs[p];
+    if (rev) path = [...path].reverse();
+    // distance-proportional timestamps so bikes glide at constant speed
+    const cum = [0];
+    for (let i = 1; i < path.length; i++) {
+      const dx = path[i][0] - path[i - 1][0], dy = path[i][1] - path[i - 1][1];
+      cum.push(cum[i - 1] + Math.hypot(dx, dy * 1.33));
+    }
+    const total = cum[cum.length - 1] || 1;
+    return { path, e, ts: cum.map(c => start + dur * c / total) };
+  });
+  overlay = new deck.MapboxOverlay({ interleaved: false, layers: [] });
+  map.addControl(overlay);
+  document.getElementById('rday').textContent = rides.day + ' · ' +
+    new Date(rides.day + 'T12:00:00').toLocaleDateString([], { weekday: 'long' });
+  document.getElementById('replay').classList.add('on');
+  renderLegend();
+  requestAnimationFrame(tick);
+}
+
+function ridesLayer() {
+  return new deck.TripsLayer({
+    id: 'rides', data: rideTrips,
+    getPath: d => d.path, getTimestamps: d => d.ts, getColor: rideColor,
+    currentTime: simTime, trailLength: 700, fadeTrail: true,
+    widthMinPixels: 2.6, capRounded: true, jointRounded: true, opacity: 0.92,
+    updateTriggers: { getColor: darkMode },
+  });
+}
+
+let lastDom = 0;
+function tick(now) {
+  if (overlay) {
+    if (playing && ridesOn) {
+      const dt = lastFrame ? Math.min(now - lastFrame, 100) : 16;
+      simTime = (simTime + dt / 1000 * SPEEDS[speedIdx]) % 86400;
+    }
+    lastFrame = now;
+    overlay.setProps({ layers: ridesOn ? [ridesLayer()] : [] });
+    if (now - lastDom > 250) {
+      lastDom = now;
+      const h = Math.floor(simTime / 3600), m = Math.floor((simTime % 3600) / 60);
+      document.getElementById('rclock').childNodes[0].textContent =
+        `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      document.getElementById('rslider').value = Math.floor(simTime);
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+// ─── legend ──────────────────────────────────────────────────────────────────
+function laneColor(t) { return darkMode ? t.dark : t.light; }
 
 function legendRow(t) {
-  const s = t.kind === 'solid' ? `<span class="sample" style="border-color:${t.color}"></span>`
-    : t.kind === 'dash' ? `<span class="sample dash" style="border-color:${t.color}"></span>`
-    : `<span class="sample dot" style="border-color:${t.color}"></span>`;
-  return `<label class="row"><input type="checkbox" checked data-t="${t.t}">${s}
-    <span class="lab">${t.label}</span><span class="ct">${(counts[t.t] || 0).toLocaleString()}</span></label>`;
+  const cls = t.kind === 'solid' ? 'sample' : t.kind === 'dash' ? 'sample dash' : 'sample dot';
+  return `<label class="row"><input type="checkbox" checked data-t="${t.t}">
+    <span class="${cls}" data-sample="${t.t}" style="border-color:${laneColor(t)}"></span>
+    <span class="txt"><span class="lab">${t.label}
+      <span class="ct">${(counts[t.t] || 0).toLocaleString()}</span></span>
+      <span class="desc">${t.desc}</span></span></label>`;
 }
 
 function renderLegend() {
-  document.getElementById('legend').innerHTML =
+  const keep = {};
+  document.querySelectorAll('#legend input').forEach(cb => keep[cb.dataset.t] = cb.checked);
+  const rideRow = !rides ? '' : (() => {
+    const c = RIDE_COLORS[darkMode ? 'dark' : 'light'];
+    return `<label class="row"><input type="checkbox" ${ridesOn ? 'checked' : ''} data-t="__rides">
+      <span class="sample dotpt" style="width:26px"></span>
+      <span class="txt"><span class="lab">Ride replay
+        <span class="ct">${rides.trips.length.toLocaleString()}</span></span>
+        <span class="desc"><span class="ridechip" style="background:rgb(${c.classic})"></span> classic ·
+        <span class="ridechip" style="background:rgb(${c.ebike})"></span> e-bike — ${rides.note}</span></span></label>
+    <div class="divider"></div>`;
+  })();
+  document.getElementById('legend').innerHTML = rideRow +
     TYPES.map(legendRow).join('') +
     `<div class="divider"></div>
      <label class="row"><input type="checkbox" data-t="__stations"><span class="sample dotpt"></span>
-       <span class="lab">Bluebikes stations</span><span class="ct" id="stct"></span></label>`;
-  document.querySelectorAll('#legend input').forEach(cb => cb.addEventListener('change', () => {
-    const t = cb.dataset.t;
-    if (t === '__stations') { toggleStations(cb.checked); return; }
-    if (map.getLayer('l-' + t)) map.setLayoutProperty('l-' + t, 'visibility', cb.checked ? 'visible' : 'none');
-  }));
+       <span class="txt"><span class="lab">Bluebikes stations
+         <span class="ct" id="stct"></span></span>
+         <span class="desc">All live stations from the official GBFS feed — click one for its dock count.</span></span></label>`;
+  document.querySelectorAll('#legend input').forEach(cb => {
+    if (cb.dataset.t in keep) cb.checked = keep[cb.dataset.t];
+    cb.addEventListener('change', () => {
+      const t = cb.dataset.t;
+      if (t === '__rides') { ridesOn = cb.checked; return; }
+      if (t === '__stations') { toggleStations(cb.checked); return; }
+      if (map.getLayer('l-' + t)) map.setLayoutProperty('l-' + t, 'visibility', cb.checked ? 'visible' : 'none');
+    });
+  });
+  if (stationFC) document.getElementById('stct').textContent = stationFC.features.length.toLocaleString();
 }
 
-async function toggleStations(on) {
-  stationsOn = on;
-  if (on && !map.getSource('stations')) {
-    const info = await fetch(GBFS_INFO).then(r => r.json());
-    const feats = info.data.stations.map(s => ({
-      type: 'Feature', geometry: { type: 'Point', coordinates: [s.lon, s.lat] },
-      properties: { n: s.name, cap: s.capacity || 0 },
-    }));
-    document.getElementById('stct').textContent = feats.length.toLocaleString();
-    map.addSource('stations', { type: 'geojson', data: { type: 'FeatureCollection', features: feats } });
-    map.addLayer({
-      id: 'stations', type: 'circle', source: 'stations',
-      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 2, 14, 5],
-               'circle-color': '#288BE4', 'circle-opacity': .85,
-               'circle-stroke-color': '#fff', 'circle-stroke-width': 1 },
-    });
-    map.on('click', 'stations', e => {
-      const p = e.features[0].properties;
-      new maplibregl.Popup().setLngLat(e.lngLat)
-        .setHTML(`<div class="pp"><b>${p.n}</b><div class="m">${p.cap} docks · Bluebikes</div></div>`).addTo(map);
-    });
-    map.on('mouseenter', 'stations', () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', 'stations', () => map.getCanvas().style.cursor = '');
-    return;
-  }
-  if (map.getLayer('stations'))
-    map.setLayoutProperty('stations', 'visibility', on ? 'visible' : 'none');
-}
-
+// ─── layers (re-run after every basemap swap) ────────────────────────────────
 function addLaneLayers() {
+  if (!lanes || map.getSource('lanes')) return;
   map.addSource('lanes', { type: 'geojson', data: lanes });
   for (const t of TYPES) {
+    const on = document.querySelector(`#legend input[data-t="${t.t}"]`)?.checked ?? true;
     map.addLayer({
       id: 'l-' + t.t, type: 'line', source: 'lanes',
       filter: ['==', ['get', 't'], t.t],
-      layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': t.color, 'line-opacity': .9,
+      layout: { 'line-cap': 'round', 'line-join': 'round',
+                visibility: on ? 'visible' : 'none' },
+      paint: { 'line-color': laneColor(t), 'line-opacity': .9,
                'line-width': ['interpolate', ['linear'], ['zoom'], 10, t.width * .5, 14, t.width, 16, t.width * 1.8],
                ...(t.dash ? { 'line-dasharray': t.dash } : {}) },
     });
@@ -154,10 +286,61 @@ function addLaneLayers() {
   }
 }
 
+function addStationsLayer() {
+  if (!stationFC || map.getSource('stations')) return;
+  map.addSource('stations', { type: 'geojson', data: stationFC });
+  map.addLayer({
+    id: 'stations', type: 'circle', source: 'stations',
+    paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 2, 14, 5],
+             'circle-color': '#288BE4', 'circle-opacity': .85,
+             'circle-stroke-color': darkMode ? '#0b1b2b' : '#ffffff', 'circle-stroke-width': 1 },
+  });
+  map.on('click', 'stations', e => {
+    const p = e.features[0].properties;
+    new maplibregl.Popup().setLngLat(e.lngLat)
+      .setHTML(`<div class="pp"><b>${p.n}</b><div class="m">${p.cap} docks · Bluebikes</div></div>`).addTo(map);
+  });
+  map.on('mouseenter', 'stations', () => map.getCanvas().style.cursor = 'pointer');
+  map.on('mouseleave', 'stations', () => map.getCanvas().style.cursor = '');
+}
+
+async function toggleStations(on) {
+  if (on && !stationFC) {
+    const info = await fetch(GBFS_INFO).then(r => r.json());
+    stationFC = { type: 'FeatureCollection', features: info.data.stations.map(s => ({
+      type: 'Feature', geometry: { type: 'Point', coordinates: [s.lon, s.lat] },
+      properties: { n: s.name, cap: s.capacity || 0 },
+    })) };
+    document.getElementById('stct').textContent = stationFC.features.length.toLocaleString();
+  }
+  if (on) { addStationsLayer(); map.setLayoutProperty('stations', 'visibility', 'visible'); }
+  else if (map.getLayer('stations')) map.setLayoutProperty('stations', 'visibility', 'none');
+}
+
+function rebuildAfterStyle() {
+  addLaneLayers();
+  const stOn = document.querySelector('#legend input[data-t="__stations"]')?.checked;
+  if (stOn) addStationsLayer();
+}
+
+// ─── light / dark ────────────────────────────────────────────────────────────
+function setMode(dark) {
+  darkMode = dark;
+  document.body.classList.toggle('dark', dark);
+  document.getElementById('modebtn').textContent = dark ? '☀️' : '🌙';
+  map.setStyle(STYLES[dark ? 'dark' : 'light']);   // wipes custom layers
+  const wait = () => {
+    if (!map.isStyleLoaded()) { setTimeout(wait, 200); return; }
+    rebuildAfterStyle();
+    renderLegend();      // recolor the line samples
+  };
+  setTimeout(wait, 250);
+}
+
+// ─── init ────────────────────────────────────────────────────────────────────
 async function init() {
   map = new maplibregl.Map({
-    container: 'map',
-    style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    container: 'map', style: STYLES.light,
     center: [-71.09, 42.355], zoom: 12.4,
     attributionControl: { compact: true },
   });
@@ -192,6 +375,22 @@ async function init() {
     c.classList.toggle('collapsed');
     document.getElementById('tog').textContent = c.classList.contains('collapsed') ? '▸' : '▾';
   });
+  document.getElementById('modebtn').addEventListener('click', () => setMode(!darkMode));
+
+  // ride-replay controls
+  document.getElementById('rplay').addEventListener('click', () => {
+    playing = !playing;
+    document.getElementById('rplay').textContent = playing ? '⏸' : '▶';
+  });
+  document.getElementById('rspeed').addEventListener('click', () => {
+    speedIdx = (speedIdx + 1) % SPEEDS.length;
+    document.getElementById('rspeed').textContent = SPEEDS[speedIdx] + '×';
+  });
+  document.getElementById('rslider').addEventListener('input', e => {
+    simTime = +e.target.value;
+  });
+
+  loadRides();
 }
 
 init();

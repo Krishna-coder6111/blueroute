@@ -39,7 +39,10 @@
   .stat b { font-size: 13px; font-family: 'JetBrains Mono', monospace; color: var(--text); display: block; }
   .stat span { font-size: 8.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; font-family: 'JetBrains Mono', monospace; }
 
-  .views { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 16px 6px; }
+  .views { display: flex; flex-direction: column; gap: 4px; padding: 0 16px 6px; }
+  .vgroup { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+  .glab { width: 52px; flex-shrink: 0; font-size: 8.5px; color: var(--muted);
+          font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .09em; }
   .vhint { padding: 0 16px 8px; font-size: 9.5px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
   .chip {
     padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border);
@@ -138,20 +141,29 @@
   </div>
   <div class="statrow" id="statrow"></div>
   <div class="views" id="views">
-    <button class="chip active" data-view="arbitrage">🚏 Last-mile</button>
-    <button class="chip" data-view="traffic">🚲 Traffic</button>
-    <button class="chip" data-view="stationage">🆕 Station age</button>
-    <button class="chip" data-view="freshness">✨ Bike age</button>
-    <button class="chip" data-view="equity">🏘 Income</button>
-    <span class="teamlab" id="team-lab" style="display:none">Bikes Team ▸</span>
-    <button class="chip" data-view="members" id="members-chip" style="display:none">🎫 Members</button>
-    <button class="chip" data-view="netflow">⚖ Net flow</button>
-    <button class="chip" data-view="dockfit">🅿 Dock fit</button>
-    <button class="chip" data-view="gaps">🚧 Lane gaps</button>
-    <button class="chip" data-view="crashes">🚑 Crashes</button>
-    <button class="chip" data-view="proposed">📍 Proposed</button>
-    <button class="chip lanes" data-view="__lanes">🛣 Bike lanes</button>
-    <button class="chip lock" id="team-lock" title="team-only layers">🔒 Bikes Team</button>
+    <div class="vgroup"><span class="glab">Riders</span>
+      <button class="chip active" data-view="arbitrage">🚏 Last-mile</button>
+      <button class="chip" data-view="traffic">🚲 Traffic</button>
+      <button class="chip" data-view="netflow">⚖ Net flow</button>
+    </div>
+    <div class="vgroup"><span class="glab">Network</span>
+      <button class="chip" data-view="stationage">🆕 Station age</button>
+      <button class="chip" data-view="freshness">✨ Bike age</button>
+      <button class="chip" data-view="dockfit">🅿 Dock fit</button>
+      <button class="chip" data-view="proposed">📍 Proposed</button>
+    </div>
+    <div class="vgroup"><span class="glab">Safety</span>
+      <button class="chip" data-view="gaps">🚧 Lane gaps</button>
+      <button class="chip" data-view="crashes">🚑 Crashes</button>
+      <button class="chip" data-view="upgrades">⬆ Upgrades</button>
+      <button class="chip lanes" data-view="__lanes">🛣 Bike lanes</button>
+    </div>
+    <div class="vgroup"><span class="glab">Equity</span>
+      <button class="chip" data-view="equity">🏘 Income</button>
+      <span class="teamlab" id="team-lab" style="display:none">Bikes Team ▸</span>
+      <button class="chip" data-view="members" id="members-chip" style="display:none">🎫 Members</button>
+      <button class="chip lock" id="team-lock" title="team-only layers">🔒 Bikes Team</button>
+    </div>
   </div>
   <div class="pwrow" id="pwrow">
     <input id="team-pw" type="password" placeholder="Bikes Team passphrase" autocomplete="current-password">
@@ -339,6 +351,23 @@ const VIEWS = {
       have no protection — the strongest case for the needed-lane corridors.</p>`,
     legend: [['swatch', FR, 'bike crash (2015–2026)']],
   },
+  upgrades: {
+    title: 'Which painted lanes deserve protection first',
+    html: `<p>Every existing <b>non-protected on-road facility</b> in Boston
+      (painted lanes, buffered lanes, sharrows), scored by the riders it
+      carries (routed Bluebikes volume within 60 m) × the <b>Vision Zero bike
+      crashes within 35 m</b>. Paint carries the riders; protection prevents
+      the crashes — the red segments are the highest-return conversions.</p>
+      <p>The list writes itself: <b>Commonwealth Ave through BU</b> (12K routed
+      riders, 26–32 crashes per segment), <b>Mass Ave</b> sharrows (30 crashes),
+      the <b>BU Bridge</b>, <b>Huntington Ave</b> sharrows, <b>Brookline Ave</b>.
+      Toggle 🛣 to see the protected network that already exists around them.
+      Priority screen, not a crash-rate study (no exposure normalization).</p>`,
+    legend: [
+      ['line', FR_L, 'upgrade candidate'],
+      ['line', FR, 'top priority (high volume × crashes)'],
+    ],
+  },
   proposed: {
     title: 'Where the next 25 stations should go',
     html: `<p>Maximal-covering optimization (Church & ReVelle 1974): 25 sites that
@@ -368,6 +397,7 @@ const VIEW_LAYERS = {
   dockfit: ['dockfit'],
   gaps: ['gaps-ctx', 'gaps-lines'],
   crashes: ['crashes'],
+  upgrades: ['upgrades'],
   members: ['hoods-fill', 'hoods-line', 'st-members'],
   proposed: ['proposed'],
 };
@@ -389,7 +419,7 @@ function arcPoints(a, b, n = 24, bend = 0.18) {
   }
   return pts;
 }
-const BUILD = '20260722b';   // bump per deploy — busts stale cached data files
+const BUILD = '20260722c';   // bump per deploy — busts stale cached data files
 const fyOf = s => { const y = parseInt(s.first); return Number.isFinite(y) ? Math.max(2018, y) : 0; };
 const binOf = y => AGE_BINS.find(b => b.test(y)) || AGE_BINS[3];
 
@@ -410,6 +440,7 @@ async function loadData() {
   DATA.proposed = await opt('proposed.json');
   DATA.dockfit = await opt('dock_resize.json');
   DATA.crashes = await opt('crashes.json');
+  DATA.upgrades = await opt('upgrades.geojson');
   // DATA.hoods arrives only via the Bikes Team unlock (members.enc)
 }
 
@@ -796,6 +827,29 @@ function initAnalysisLayers() {
     bindPointer('crashes');
   }
 
+  // lane upgrade candidates (paint → protection)
+  if (DATA.upgrades) {
+    map.addSource('upgrades', { type: 'geojson', data: DATA.upgrades });
+    map.addLayer({
+      id: 'upgrades', type: 'line', source: 'upgrades',
+      layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': ['interpolate', ['linear'], ['get', 's'], 20, FR_L, 120, FR, 260, FR_D],
+        'line-width': ['interpolate', ['linear'], ['get', 's'], 20, 2, 120, 4, 300, 6.5],
+        'line-opacity': 0.9,
+      },
+    });
+    map.on('click', 'upgrades', e => {
+      const p = e.features[0].properties;
+      const CUR = { lane: 'painted lane', buffered: 'buffered lane', shared: 'sharrows' };
+      new maplibregl.Popup().setLngLat(e.lngLat)
+        .setHTML(`<div class="pp"><b>${p.name || 'Upgrade candidate'}</b>
+          <div class="m">today: <i>${CUR[p.t] || p.t}</i> · <i>${(+p.v).toLocaleString()}</i> routed trips/yr nearby ·
+          <i>${p.cr}</i> bike crashes (<i>${p.crr}</i> since 2022) · score <i>${p.s}</i></div></div>`).addTo(map);
+    });
+    bindPointer('upgrades');
+  }
+
   // proposed (top)
   if (DATA.proposed) {
     map.addSource('proposed', {
@@ -833,7 +887,7 @@ function initAnalysisLayers() {
 function hasView(v) {
   return !((v === 'gaps' && !DATA.gaps) || (v === 'proposed' && !DATA.proposed) ||
            (v === 'dockfit' && !DATA.dockfit) || (v === 'crashes' && !DATA.crashes) ||
-           (v === 'members' && !DATA.hoods));
+           (v === 'upgrades' && !DATA.upgrades) || (v === 'members' && !DATA.hoods));
 }
 
 // casual-share color ramp shared by neighborhood fills and station dots
@@ -950,13 +1004,23 @@ function renderStory() {
         `<div class="row"><span class="${kind}" style="background:${color}"></span>${label}</div>`).join('') + `</div>`;
   }
   if (lanesOn) {
-    html += `<div class="legend"><div class="ltitle">Bike facilities · Boston + Cambridge + Somerville + Brookline</div>
-      <div class="row"><span class="line" style="background:#22c55e;height:4px"></span>Separated / protected</div>
-      <div class="row"><span class="line" style="background:#2dd4bf;height:3px"></span>Buffered lane</div>
-      <div class="row"><span class="line" style="background:#86efac;height:2px"></span>Conventional lane</div>
-      <div class="row"><span class="line" style="background:repeating-linear-gradient(90deg,#57cfc0 0 5px,transparent 5px 9px);height:3px"></span>Shared-use path</div>
-      <div class="row"><span class="line" style="background:repeating-linear-gradient(90deg,#9aa79b 0 2px,transparent 2px 6px);height:2px"></span>Sharrows / shared</div>
-    </div>`;
+    const LANE_DEFS = [
+      ['#22c55e', 4, 'solid', 'Separated / protected', 'physical barrier between bikes and cars (curb, posts, or parked cars)'],
+      ['#2dd4bf', 3, 'solid', 'Buffered lane', 'painted lane plus a striped buffer zone — space, but no barrier'],
+      ['#86efac', 2, 'solid', 'Conventional lane', 'a painted lane directly beside moving traffic'],
+      ['#57cfc0', 3, 'dash', 'Shared-use path', 'off-street path shared with pedestrians (river paths, greenways)'],
+      ['#9aa79b', 2, 'dot', 'Sharrows / shared', 'no lane at all — painted arrows remind drivers to share the road'],
+    ];
+    html += `<div class="legend"><div class="ltitle">Bike facilities · Boston + Cambridge + Somerville + Brookline</div>` +
+      LANE_DEFS.map(([c, h, kind, name, def]) => {
+        const bg = kind === 'solid' ? c
+          : kind === 'dash' ? `repeating-linear-gradient(90deg,${c} 0 5px,transparent 5px 9px)`
+          : `repeating-linear-gradient(90deg,${c} 0 2px,transparent 2px 6px)`;
+        return `<div class="row" style="align-items:flex-start;padding:3px 0">
+          <span class="line" style="background:${bg};height:${h}px;margin-top:5px"></span>
+          <span><span style="color:var(--text)">${name}</span><br>
+          <span style="font-size:9.5px;color:var(--muted);font-family:'DM Sans',sans-serif">${def}</span></span></div>`;
+      }).join('') + `</div>`;
   }
 
   if (primaryView === 'arbitrage') {
@@ -975,6 +1039,23 @@ function renderStory() {
       `<div class="item" data-fly="${s.lng},${s.lat}">
         <span class="rank" style="color:${s.net > 0 ? OB : FR}">${s.net > 0 ? '▲' : '▼'}</span><span>${s.n}</span>
         <span class="val">${s.net > 0 ? '+' : ''}${s.net.toLocaleString()}</span></div>`).join('') + `</div>`;
+  }
+  if (primaryView === 'upgrades' && DATA.upgrades) {
+    const named = DATA.upgrades.features
+      .filter(f => f.properties.name)
+      .sort((a, b) => b.properties.s - a.properties.s);
+    const seen = new Set();
+    const top = named.filter(f => {
+      if (seen.has(f.properties.name)) return false;
+      seen.add(f.properties.name);
+      return true;
+    }).slice(0, 5);
+    html += `<div class="toplist">` + top.map((f, i) => {
+      const c = f.geometry.coordinates[Math.floor(f.geometry.coordinates.length / 2)];
+      return `<div class="item" data-fly="${c[0]},${c[1]}">
+        <span class="rank">#${i + 1}</span><span>${f.properties.name}</span>
+        <span class="val">${f.properties.cr} crashes</span></div>`;
+    }).join('') + `</div>`;
   }
   if (primaryView === 'dockfit' && DATA.dockfit) {
     const ex = DATA.dockfit.filter(d => d.a === 'expand').slice(0, 3);
